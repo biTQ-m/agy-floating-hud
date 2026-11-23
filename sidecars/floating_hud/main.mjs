@@ -90,7 +90,7 @@ function updateSettings(patch) {
   if (typeof patch.soundEnabled === 'boolean') next.soundEnabled = patch.soundEnabled;
   if (typeof patch.autoDimIdle === 'boolean') next.autoDimIdle = patch.autoDimIdle;
   if (typeof patch.opacity === 'number' && Number.isFinite(patch.opacity)) {
-    next.opacity = Math.min(1, Math.max(0.45, Number(patch.opacity.toFixed(2))));
+    next.opacity = Math.min(1, Math.max(0.2, Number(patch.opacity.toFixed(2))));
   }
   if (
     typeof patch.positionPreset === 'string' &&

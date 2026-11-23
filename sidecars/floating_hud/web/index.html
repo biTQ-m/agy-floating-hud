@@ -524,7 +524,12 @@
       width: 100%;
       height: 6px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
+      background: linear-gradient(
+        90deg,
+        var(--hud-indigo) 0%,
+        var(--hud-sky) var(--range-fill, 92.5%),
+        rgba(255, 255, 255, 0.12) var(--range-fill, 92.5%)
+      );
       outline: none;
       cursor: pointer;
     }
@@ -539,6 +544,49 @@
       border: 2px solid #ffffff;
       box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
       cursor: pointer;
+    }
+
+    .opacity-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .opacity-hint {
+      font-size: 11px;
+      color: var(--hud-text-3);
+    }
+
+    .opacity-presets {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .op-chip {
+      border: 1px solid var(--hud-border);
+      background: var(--hud-surface-2);
+      color: var(--hud-text-2);
+      font-size: 10.5px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 2px 7px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .op-chip:hover {
+      color: var(--hud-text-1);
+      border-color: var(--hud-border-strong);
+    }
+
+    .op-chip.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #e0f2fe;
     }
 
     .seg-group {
@@ -755,87 +803,131 @@
       flex-shrink: 0;
     }
 
-    /* 4-Stage Segmented Stepper in Web Dashboard */
-    .stepper {
-      margin-top: 9px;
+    /* Obsidian Laser Progress Track in Web Dashboard */
+    .laser-wrap {
+      margin-top: 8px;
     }
 
-    .stepper-bars {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-
-    .step-seg {
+    .laser-track {
+      position: relative;
       height: 5px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(4, 7, 15, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.085);
+    }
+
+    .laser-groove {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
       overflow: hidden;
+    }
+
+    .laser-groove::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 68px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, var(--laser-ghost, rgba(56, 189, 248, 0.22)), transparent);
+      animation: laserGhostSweep 2.15s linear infinite;
+    }
+
+    .laser-track.is-paused .laser-groove::after {
+      display: none;
+    }
+
+    .laser-fill {
       position: relative;
+      height: 100%;
+      min-width: 14px;
+      border-radius: 999px;
+      background: var(--laser-grad, linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5));
+      box-shadow: 0 0 11px var(--laser-glow, rgba(56, 189, 248, 0.58)),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      overflow: hidden;
+      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .step-seg.done {
-      background: rgba(56, 189, 248, 0.68);
-    }
-
-    .step-seg.current {
-      background: rgba(56, 189, 248, 0.24);
-    }
-
-    .step-seg.current::after {
+    .laser-fill::before {
       content: "";
       position: absolute;
       inset: 0;
-      width: 55%;
+      width: 48%;
       border-radius: 999px;
-      background: linear-gradient(90deg, transparent, #38bdf8, #ffffff, transparent);
-      animation: cometSlide 1.4s linear infinite;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.44), transparent);
+      animation: laserSheen 1.55s linear infinite;
     }
 
-    @keyframes cometSlide {
-      0%   { transform: translateX(-110%); }
-      100% { transform: translateX(210%); }
+    .laser-track.is-paused .laser-fill::before {
+      display: none;
     }
 
-    .stepper-labels {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-top: 4px;
-      text-align: center;
-      font-size: 10.5px;
-      color: var(--hud-text-3);
+    .laser-track.is-paused .laser-fill {
+      animation: laserBreath 2.2s ease-in-out infinite;
     }
 
-    .stepper-labels span.done {
-      color: var(--hud-text-2);
+    .laser-fill::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(18px, 32%);
+      border-radius: 0 999px 999px 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62) 65%, rgba(255, 255, 255, 0.96));
     }
 
-    .stepper-labels span.current {
-      color: var(--hud-sky);
-      font-weight: 700;
+    @keyframes laserSheen {
+      0%   { transform: translateX(-115%); }
+      100% { transform: translateX(225%); }
     }
 
-    /* Checklist Discrete Blocks */
+    @keyframes laserGhostSweep {
+      0%   { left: 18%; opacity: 0; }
+      20%  { opacity: 1; }
+      85%  { opacity: 0.9; }
+      100% { left: 96%; opacity: 0; }
+    }
+
+    @keyframes laserBreath {
+      0%, 100% { filter: brightness(0.92); }
+      50%      { filter: brightness(1.16); }
+    }
+
+    /* Checklist Discrete Glass Milestones */
     .checklist-track {
-      margin-top: 9px;
+      margin-top: 8px;
     }
 
     .checklist-blocks {
       display: flex;
       gap: 4px;
-      margin-bottom: 4px;
     }
 
     .cl-block {
       flex: 1;
       height: 5px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.09);
+      background: rgba(4, 7, 15, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.085);
+      overflow: hidden;
+      position: relative;
     }
 
     .cl-block.done {
+      border-color: transparent;
       background: linear-gradient(90deg, var(--hud-sky), var(--hud-emerald));
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.28);
+    }
+
+    .cl-block.current {
+      border-color: rgba(45, 212, 191, 0.25);
+    }
+
+    .cl-block.current .laser-fill {
+      width: 62%;
     }
 
     .empty-box {
@@ -1033,10 +1125,20 @@
         <!-- Opacity Range Slider -->
         <div class="range-wrap">
           <div class="range-header">
-            <span>毛玻璃背景浓度</span>
+            <span>悬浮窗透明度（不透明度调节）</span>
             <span id="opacityVal" class="value-pill">94%</span>
           </div>
-          <input type="range" id="rngOpacity" min="55" max="100" step="1" value="94" />
+          <input type="range" id="rngOpacity" min="20" max="100" step="1" value="94" />
+          <div class="opacity-footer">
+            <span class="opacity-hint">20% 高透视 ↔ 100% 不透明</span>
+            <div class="opacity-presets" id="opacityPresetGroup">
+              <button type="button" class="op-chip" data-op="35">35%</button>
+              <button type="button" class="op-chip" data-op="55">55%</button>
+              <button type="button" class="op-chip" data-op="75">75%</button>
+              <button type="button" class="op-chip" data-op="94">94%</button>
+              <button type="button" class="op-chip" data-op="100">100%</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1123,10 +1225,38 @@
     }
 
     const PHASE_META = {
-      thinking:     { label: '思考中', color: '#38bdf8', active: true },
-      running_tool: { label: '执行中', color: '#818cf8', active: true },
-      waiting:      { label: '待确认', color: '#fbbf24', active: true },
-      streaming:    { label: '输出中', color: '#2dd4bf', active: true },
+      thinking:     {
+        label: '思考中',
+        color: '#38bdf8',
+        active: true,
+        grad: 'linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5)',
+        glow: 'rgba(56, 189, 248, 0.56)',
+        ghost: 'rgba(56, 189, 248, 0.22)',
+      },
+      running_tool: {
+        label: '执行中',
+        color: '#818cf8',
+        active: true,
+        grad: 'linear-gradient(90deg, #5b59f2, #8f7aff, #38c2fa)',
+        glow: 'rgba(112, 158, 255, 0.58)',
+        ghost: 'rgba(129, 140, 248, 0.22)',
+      },
+      waiting:      {
+        label: '待确认',
+        color: '#fbbf24',
+        active: true,
+        grad: 'linear-gradient(90deg, #e07a14, #fbbf24, #fde68a)',
+        glow: 'rgba(251, 191, 36, 0.52)',
+        ghost: 'rgba(251, 191, 36, 0.16)',
+      },
+      streaming:    {
+        label: '输出中',
+        color: '#2dd4bf',
+        active: true,
+        grad: 'linear-gradient(90deg, #24b8f5, #29dbd1, #38e0a3)',
+        glow: 'rgba(45, 219, 194, 0.56)',
+        ghost: 'rgba(45, 212, 191, 0.22)',
+      },
       completed:    { label: '已完成', color: '#34d399', active: false },
       error:        { label: '异常',   color: '#fb7185', active: false },
       canceled:     { label: '已停止', color: '#94a3b8', active: false },
@@ -1153,52 +1283,62 @@
         .replace(/"/g, '&quot;');
     }
 
+    function computeProgressPercent(s) {
+      if (typeof s.progress === 'number' && Number.isFinite(s.progress) && s.progress > 0) {
+        return Math.min(96, Math.max(10, s.progress));
+      }
+      if (s.taskStats && s.taskStats.total > 0) {
+        return Math.min(100, Math.max(8, Math.round(((s.taskStats.done + 0.5) / s.taskStats.total) * 100)));
+      }
+      if (s.phase === 'streaming') return 92;
+      const tools = Number(s.turnToolCount || 0);
+      if (tools <= 0) return 24;
+      return Math.min(85, Math.round(26 + 59 * (1 - Math.exp(-tools / 14))));
+    }
+
     function renderProgressTrack(s, meta) {
       if (!meta.active) return '';
+      const isPaused = s.phase === 'waiting';
 
       if (s.taskStats && s.taskStats.total > 0) {
         const ts = s.taskStats;
-        const blocks = [];
-        const cap = Math.min(12, ts.total);
-        const scaledDone = Math.round((ts.done / ts.total) * cap);
-        for (let i = 0; i < cap; i++) {
-          blocks.push(`<div class="cl-block ${i < scaledDone ? 'done' : ''}"></div>`);
-        }
-        return `
-          <div class="checklist-track">
-            <div class="checklist-blocks">${blocks.join('')}</div>
-            <div class="sc-mix" style="color:#34d399;">
-              清单 ${ts.done}/${ts.total} (${ts.percent}%)${ts.currentItem ? ' · ' + escapeHtml(ts.currentItem) : ''}
+        if (ts.total <= 10) {
+          const activeLimit = ts.done + Math.max(ts.inProgress || 0, 1);
+          const blocks = [];
+          for (let i = 0; i < ts.total; i++) {
+            if (i < ts.done) {
+              blocks.push('<div class="cl-block done"></div>');
+            } else if (i < activeLimit) {
+              blocks.push(`
+                <div class="cl-block current ${isPaused ? 'is-paused' : ''}">
+                  <div class="laser-fill" style="--laser-grad:linear-gradient(90deg,#38bdf8,#2dd4bf);--laser-glow:rgba(45,212,191,0.45);"></div>
+                </div>
+              `);
+            } else {
+              blocks.push('<div class="cl-block"></div>');
+            }
+          }
+          return `
+            <div class="checklist-track">
+              <div class="checklist-blocks">${blocks.join('')}</div>
             </div>
-          </div>
-        `;
+          `;
+        }
       }
 
-      const stage = Number(s.stage || 1);
-      const execLabel = s.phase === 'waiting'
-        ? '待确认'
-        : (s.turnToolCount > 0 ? `执行 · ${s.turnToolCount}步` : '执行');
-      const labels = ['思考', execLabel, '回复', '完成'];
-
-      const barsHtml = [1, 2, 3, 4]
-        .map((idx) => {
-          const cls = idx < stage ? 'done' : idx === stage ? 'current' : '';
-          return `<div class="step-seg ${cls}"></div>`;
-        })
-        .join('');
-
-      const labelsHtml = labels
-        .map((txt, i) => {
-          const idx = i + 1;
-          const cls = idx < stage ? 'done' : idx === stage ? 'current' : '';
-          return `<span class="${cls}">${escapeHtml(txt)}</span>`;
-        })
-        .join('');
+      const pct = computeProgressPercent(s);
+      const grad = s.taskStats
+        ? 'linear-gradient(90deg, #38bdf8, #29dbd6, #34d399)'
+        : (meta.grad || 'linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5)');
+      const glow = s.taskStats ? 'rgba(52, 211, 153, 0.5)' : (meta.glow || 'rgba(56, 189, 248, 0.56)');
+      const ghost = meta.ghost || 'rgba(56, 189, 248, 0.22)';
 
       return `
-        <div class="stepper">
-          <div class="stepper-bars">${barsHtml}</div>
-          <div class="stepper-labels">${labelsHtml}</div>
+        <div class="laser-wrap">
+          <div class="laser-track ${isPaused ? 'is-paused' : ''}" style="--laser-grad:${grad};--laser-glow:${glow};--laser-ghost:${ghost};">
+            <div class="laser-groove"></div>
+            <div class="laser-fill" style="width:${pct}%;"></div>
+          </div>
         </div>
       `;
     }
@@ -1256,9 +1396,10 @@
       document.getElementById('chkSound').checked = Boolean(settings.soundEnabled);
       document.getElementById('chkAutoDim').checked = Boolean(settings.autoDimIdle);
 
-      const pct = Math.round((settings.opacity ?? 0.94) * 100);
-      document.getElementById('rngOpacity').value = String(pct);
-      document.getElementById('opacityVal').textContent = `${pct}%`;
+      if (Date.now() > opacityDragLockUntil) {
+        const pct = Math.min(100, Math.max(20, Math.round((settings.opacity ?? 0.94) * 100)));
+        syncOpacityUi(pct);
+      }
 
       // Screen position hotspots
       const pos = settings.positionPreset || 'top_right';
@@ -1304,11 +1445,23 @@
             p === 'waiting' ? 'phase-waiting' : '',
           ].filter(Boolean).join(' ');
 
+          const statusLine = (s.taskStats && s.taskStats.currentItem && p === 'thinking')
+            ? s.taskStats.currentItem
+            : (s.detailText || '');
+
+          let rightTelemetryHtml = '';
+          if (meta.active && s.taskStats && s.taskStats.total > 0) {
+            rightTelemetryHtml = `<span class="sc-mix" style="color:#34d399;font-weight:600;">清单 ${s.taskStats.done}/${s.taskStats.total} · ${s.taskStats.percent}%</span>`;
+          } else if (Number(s.turnToolCount || 0) > 0) {
+            const mixSuffix = s.turnToolMix ? ` <span style="color:var(--hud-text-3);">· ${escapeHtml(s.turnToolMix)}</span>` : '';
+            rightTelemetryHtml = `<span class="sc-mix"><span style="color:${meta.color};font-weight:600;">${Number(s.turnToolCount)} 步</span>${mixSuffix}</span>`;
+          }
+
           const row3Html = (meta.active || p === 'error')
             ? `
               <div class="sc-row-3">
-                <span class="sc-detail">${escapeHtml(s.detailText || '')}</span>
-                ${s.turnToolMix ? `<span class="sc-mix">${escapeHtml(s.turnToolMix)}</span>` : ''}
+                <span class="sc-detail">${escapeHtml(statusLine)}</span>
+                ${rightTelemetryHtml}
               </div>
             `
             : '';
@@ -1404,14 +1557,61 @@
       });
     });
 
-    document.getElementById('rngOpacity').addEventListener('input', (e) => {
-      document.getElementById('opacityVal').textContent = `${e.target.value}%`;
+    let opacityDragLockUntil = 0;
+    let opacityLiveTimer = null;
+
+    function syncOpacityUi(pct) {
+      const clamped = Math.min(100, Math.max(20, Math.round(Number(pct) || 94)));
+      const rng = document.getElementById('rngOpacity');
+      rng.value = String(clamped);
+      const fillPct = ((clamped - 20) / 80) * 100;
+      rng.style.setProperty('--range-fill', `${fillPct.toFixed(1)}%`);
+      document.getElementById('opacityVal').textContent = `${clamped}%`;
+      document.querySelectorAll('#opacityPresetGroup .op-chip').forEach((chip) => {
+        chip.classList.toggle('active', Math.abs(Number(chip.dataset.op) - clamped) <= 2);
+      });
+    }
+
+    const rngOpacityEl = document.getElementById('rngOpacity');
+    rngOpacityEl.addEventListener('pointerdown', () => {
+      opacityDragLockUntil = Date.now() + 8000;
     });
 
-    document.getElementById('rngOpacity').addEventListener('change', async (e) => {
-      const opacity = Number(e.target.value) / 100;
+    rngOpacityEl.addEventListener('input', (e) => {
+      const pct = Number(e.target.value);
+      opacityDragLockUntil = Date.now() + 2500;
+      syncOpacityUi(pct);
+      if (!opacityLiveTimer) {
+        opacityLiveTimer = setTimeout(() => {
+          opacityLiveTimer = null;
+          const liveOpacity = Number(rngOpacityEl.value) / 100;
+          apiPost('/api/settings', { opacity: liveOpacity }).catch(() => {});
+        }, 60);
+      }
+    });
+
+    rngOpacityEl.addEventListener('change', async (e) => {
+      if (opacityLiveTimer) {
+        clearTimeout(opacityLiveTimer);
+        opacityLiveTimer = null;
+      }
+      const pct = Number(e.target.value);
+      opacityDragLockUntil = Date.now() + 1200;
+      syncOpacityUi(pct);
+      const opacity = pct / 100;
       await apiPost('/api/settings', { opacity });
-      showToast(`毛玻璃浓度已设为 ${e.target.value}%`);
+      showToast(`悬浮窗不透明度已设为 ${pct}%`);
+    });
+
+    document.querySelectorAll('#opacityPresetGroup .op-chip').forEach((chip) => {
+      chip.addEventListener('click', async () => {
+        const pct = Number(chip.dataset.op);
+        opacityDragLockUntil = Date.now() + 1200;
+        syncOpacityUi(pct);
+        await apiPost('/api/settings', { opacity: pct / 100 });
+        showToast(`悬浮窗不透明度已设为 ${pct}%`);
+        refresh();
+      });
     });
 
     document.querySelectorAll('.pos-hotspot').forEach((btn) => {

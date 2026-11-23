@@ -1,11 +1,11 @@
 ---
 name: floating-hud
-description: Control and configure the AGY Floating HUD desktop capsule overlay (show/hide, pin expanded list, clear completed tasks, screen position preset, completion chime, or open the Floating HUD control panel in Antigravity Desktop).
+description: Control and configure the AGY Floating HUD desktop capsule overlay (show/hide, adjust opacity/transparency, pin expanded list, clear completed tasks, screen position preset, completion chime, or open the Floating HUD control panel in Antigravity Desktop).
 ---
 
 # AGY Floating HUD Skill
 
-Use this skill when the user asks to open, hide, move, mute, unmute, pin, or preview the **AGY Floating HUD** (`agy-floating-hud`) desktop floating progress capsule on macOS.
+Use this skill when the user asks to open, hide, move, adjust opacity/transparency, mute, unmute, pin, or preview the **AGY Floating HUD** (`agy-floating-hud`) desktop floating progress capsule on macOS.
 
 ## 1. Open the Sidecar Control Panel Pill
 
@@ -30,6 +30,9 @@ The native macOS helper (`AgyFloatingHud.app`) watches `~/.gemini/antigravity/pl
   "maxSessionsShown": 5
 }
 ```
+
+Supported `opacity` values:
+- Float in `0.20` .. `1.00` (`20%` high-transparency watermark up to `100%` fully opaque; default `0.94`). Can also be adjusted interactively via the `◐` button on the expanded HUD header, the macOS menu bar `悬浮窗透明度` submenu, or the Sidecar panel slider.
 
 Supported `positionPreset` values:
 - `"top_right"` — 右上角（默认推荐）

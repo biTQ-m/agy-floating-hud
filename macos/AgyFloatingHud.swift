@@ -71,6 +71,65 @@ enum SessionPhase: String, Codable, Equatable {
         case .idle: return "moon.zzz.fill"
         }
     }
+
+    var progressGradientColors: [Color] {
+        switch self {
+        case .thinking:
+            return [
+                Color(red: 0.39, green: 0.40, blue: 0.96),
+                Color(red: 0.22, green: 0.74, blue: 0.98),
+                Color(red: 0.26, green: 0.90, blue: 0.95),
+            ]
+        case .runningTool:
+            return [
+                Color(red: 0.36, green: 0.35, blue: 0.95),
+                Color(red: 0.56, green: 0.48, blue: 1.00),
+                Color(red: 0.22, green: 0.76, blue: 0.98),
+            ]
+        case .waiting:
+            return [
+                Color(red: 0.88, green: 0.48, blue: 0.08),
+                Color(red: 0.98, green: 0.75, blue: 0.18),
+                Color(red: 1.00, green: 0.91, blue: 0.54),
+            ]
+        case .streaming:
+            return [
+                Color(red: 0.14, green: 0.72, blue: 0.96),
+                Color(red: 0.16, green: 0.86, blue: 0.82),
+                Color(red: 0.22, green: 0.88, blue: 0.64),
+            ]
+        case .completed:
+            return [
+                Color(red: 0.18, green: 0.76, blue: 0.92),
+                Color(red: 0.20, green: 0.85, blue: 0.62),
+            ]
+        case .error:
+            return [
+                Color(red: 0.92, green: 0.26, blue: 0.34),
+                Color(red: 0.98, green: 0.46, blue: 0.48),
+            ]
+        case .canceled, .idle:
+            return [
+                Color(red: 0.46, green: 0.52, blue: 0.62),
+                Color(red: 0.62, green: 0.66, blue: 0.74),
+            ]
+        }
+    }
+
+    var progressGlowColor: Color {
+        switch self {
+        case .thinking:
+            return Color(red: 0.22, green: 0.74, blue: 0.98)
+        case .runningTool:
+            return Color(red: 0.44, green: 0.62, blue: 1.00)
+        case .waiting:
+            return Color(red: 0.98, green: 0.75, blue: 0.18)
+        case .streaming:
+            return Color(red: 0.18, green: 0.86, blue: 0.76)
+        default:
+            return accentColor
+        }
+    }
 }
 
 struct TaskChecklistStats: Equatable, Codable {
@@ -111,6 +170,29 @@ struct SessionSnapshot: Identifiable, Equatable {
         case .completed, .error, .canceled, .idle:
             return 4
         }
+    }
+
+    /// Smooth, monotonic progress fraction (0.0 ... 1.0) combining `task.md` checklist milestones
+    /// or asymptotic real-time turn progression (`thinking` -> `tool loop` -> `streaming`).
+    func estimatedProgress(at now: Date) -> Double {
+        if let ts = taskStats, ts.total > 0 {
+            let activeCredit = (phase.isActive && ts.done < ts.total)
+                ? max(0.42, min(0.85, Double(max(1, ts.inProgress)) * 0.5))
+                : 0.0
+            return min(1.0, max(0.08, (Double(ts.done) + activeCredit) / Double(ts.total)))
+        }
+        guard phase.isActive else {
+            return phase == .completed ? 1.0 : 0.0
+        }
+        let elapsed = max(0.0, now.timeIntervalSince(turnStartedAt))
+        if phase == .streaming {
+            return min(0.95, 0.88 + 0.07 * (1.0 - exp(-elapsed / 12.0)))
+        }
+        if turnToolCount <= 0 {
+            return 0.14 + 0.20 * (1.0 - exp(-elapsed / 7.5))
+        }
+        let stepCurve = 1.0 - exp(-Double(turnToolCount) / 14.0)
+        return min(0.85, 0.26 + 0.59 * stepCurve)
     }
 
     var primaryTitle: String {
@@ -166,6 +248,9 @@ struct SessionSnapshot: Identifiable, Equatable {
 }
 
 struct HudSettings: Codable, Equatable {
+    static let minOpacity: Double = 0.20
+    static let maxOpacity: Double = 1.00
+
     var visible: Bool = true
     var pinnedExpanded: Bool = false
     var soundEnabled: Bool = true
@@ -177,6 +262,10 @@ struct HudSettings: Codable, Equatable {
     var maxSessionsShown: Int = 5
     var clearedCompletedBefore: Double? = nil
     var dismissedSessions: [String: Double]? = nil
+
+    var clampedOpacity: Double {
+        min(Self.maxOpacity, max(Self.minOpacity, opacity))
+    }
 }
 
 enum FlashBanner: Equatable {
@@ -353,12 +442,14 @@ final class HudViewModel: ObservableObject {
     @Published var sessions: [SessionSnapshot] = []
     @Published var settings: HudSettings = HudSettings()
     @Published var isHovered: Bool = false
+    @Published var isOpacityBarOpen: Bool = false
     @Published var flashBanner: FlashBanner? = nil
     @Published var jumpingSessionId: String? = nil
     @Published var now: Date = Date()
     @Published var pulseTick: Bool = false
 
     var onLayoutChange: (() -> Void)?
+    var onAlphaChange: (() -> Void)?
     var onStatusChange: (() -> Void)?
 
     let appDataDir: URL
@@ -383,6 +474,7 @@ final class HudViewModel: ObservableObject {
     private var lastChimeAt: Date = .distantPast
     private var flashClearWorkItem: DispatchWorkItem? = nil
     private var hoverExitWorkItem: DispatchWorkItem? = nil
+    private var pendingOpacitySaveWorkItem: DispatchWorkItem? = nil
     private var watchSources: [DispatchSourceFileSystemObject] = []
 
     private let isoFormatterWithFrac: ISO8601DateFormatter = {
@@ -479,13 +571,18 @@ final class HudViewModel: ObservableObject {
             if !isHovered {
                 isHovered = true
                 onLayoutChange?()
+                onAlphaChange?()
             }
         } else {
             let item = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
                 if self.isHovered {
                     self.isHovered = false
+                    if !self.settings.pinnedExpanded {
+                        self.isOpacityBarOpen = false
+                    }
                     self.onLayoutChange?()
+                    self.onAlphaChange?()
                 }
             }
             hoverExitWorkItem = item
@@ -493,13 +590,45 @@ final class HudViewModel: ObservableObject {
         }
     }
 
+    func toggleOpacityBar() {
+        isOpacityBarOpen.toggle()
+        onLayoutChange?()
+    }
+
+    func setOpacity(_ rawValue: Double, persistImmediately: Bool) {
+        let clamped = (min(HudSettings.maxOpacity, max(HudSettings.minOpacity, rawValue)) * 100.0).rounded() / 100.0
+        if abs(settings.opacity - clamped) > 0.0005 {
+            settings.opacity = clamped
+            onAlphaChange?()
+        }
+        pendingOpacitySaveWorkItem?.cancel()
+        if persistImmediately {
+            pendingOpacitySaveWorkItem = nil
+            saveSettings()
+            writeHelperStatus()
+            onStatusChange?()
+        } else {
+            let item = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.pendingOpacitySaveWorkItem = nil
+                self.saveSettings()
+                self.writeHelperStatus()
+                self.onStatusChange?()
+            }
+            pendingOpacitySaveWorkItem = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: item)
+        }
+    }
+
     func updateSettings(_ mutate: (inout HudSettings) -> Void) {
         var next = settings
         mutate(&next)
+        next.opacity = next.clampedOpacity
         settings = next
         saveSettings()
         writeHelperStatus()
         onLayoutChange?()
+        onAlphaChange?()
         onStatusChange?()
     }
 
@@ -534,6 +663,7 @@ final class HudViewModel: ObservableObject {
                 "promptTitle": s.promptTitle,
                 "phase": s.phase.rawValue,
                 "stage": s.lifecycleStage,
+                "progress": Int(round(s.estimatedProgress(at: checkNow) * 100.0)),
                 "turnToolCount": s.turnToolCount,
                 "turnToolMix": s.turnToolMix,
                 "detailText": s.detailText,
@@ -666,6 +796,7 @@ final class HudViewModel: ObservableObject {
                 self.pulseTick.toggle()
                 self.loadSettingsIfNeeded(force: false)
                 self.refreshAll()
+                self.onAlphaChange?()
             }
         }
 
@@ -677,6 +808,9 @@ final class HudViewModel: ObservableObject {
     }
 
     private func loadSettingsIfNeeded(force: Bool) {
+        if !force && pendingOpacitySaveWorkItem != nil {
+            return
+        }
         guard FileManager.default.fileExists(atPath: settingsURL.path) else {
             if force { saveSettings() }
             return
@@ -690,7 +824,8 @@ final class HudViewModel: ObservableObject {
             }
         }
         if let data = try? Data(contentsOf: settingsURL),
-           let decoded = try? JSONDecoder().decode(HudSettings.self, from: data) {
+           var decoded = try? JSONDecoder().decode(HudSettings.self, from: data) {
+            decoded.opacity = decoded.clampedOpacity
             if let attrs = try? FileManager.default.attributesOfItem(atPath: settingsURL.path),
                let mtime = attrs[.modificationDate] as? Date {
                 lastSettingsMtime = mtime
@@ -699,6 +834,7 @@ final class HudViewModel: ObservableObject {
                 settings = decoded
                 refreshAll()
                 onLayoutChange?()
+                onAlphaChange?()
                 onStatusChange?()
             }
         }
@@ -959,7 +1095,10 @@ final class HudViewModel: ObservableObject {
 
         case 14, 101: // USER_INPUT or SYSTEM_MESSAGE waiting for first token
             if age < 180.0 {
-                return (.thinking, "收到指令 · 模型正在思考中…")
+                let msg = (rec.tailStepType == 101 && rec.turnToolCount > 0)
+                    ? "收到任务回执 · 模型推理中…"
+                    : "收到指令 · 模型正在思考中…"
+                return (.thinking, msg)
             }
             return (.canceled, "已停止执行")
 
@@ -1275,7 +1414,7 @@ final class HudViewModel: ObservableObject {
         var categoryCounts: [String: Int] = [:]
         if lastUserIdx >= 0 {
             var stmt: OpaquePointer? = nil
-            let tSql = "SELECT step_payload FROM steps WHERE idx > ? AND step_type = 132 ORDER BY idx ASC LIMIT 80;"
+            let tSql = "SELECT step_payload FROM steps WHERE idx > ? AND step_type = 132 ORDER BY idx ASC LIMIT 250;"
             if sqlite3_prepare_v2(conn, tSql, -1, &stmt, nil) == SQLITE_OK, let s = stmt {
                 sqlite3_bind_int(s, 1, Int32(lastUserIdx))
                 while sqlite3_step(s) == SQLITE_ROW {
@@ -1297,11 +1436,18 @@ final class HudViewModel: ObservableObject {
             }
         }
         let orderedCats = ["编辑", "终端", "子代理", "读取", "检索", "工具"]
-        let mixParts = orderedCats.compactMap { k -> String? in
-            guard let c = categoryCounts[k], c > 0 else { return nil }
-            return "\(k)×\(c)"
-        }
-        let turnToolMix = mixParts.prefix(3).joined(separator: " · ")
+        let rankedCats = orderedCats
+            .enumerated()
+            .compactMap { (rank, key) -> (key: String, count: Int, rank: Int)? in
+                guard let c = categoryCounts[key], c > 0 else { return nil }
+                return (key, c, rank)
+            }
+            .sorted { a, b in
+                if a.count != b.count { return a.count > b.count }
+                return a.rank < b.rank
+            }
+        let mixParts = rankedCats.prefix(2).map { "\($0.key) \($0.count)" }
+        let turnToolMix = mixParts.joined(separator: " · ")
 
         // Extract tail[0] facts
         var tailStepType = 0
@@ -1704,6 +1850,7 @@ final class HudViewModel: ObservableObject {
 struct VisualEffectBlur: NSViewRepresentable {
     var material: NSVisualEffectView.Material = .hudWindow
     var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
+    var alpha: CGFloat = 1.0
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -1711,6 +1858,7 @@ struct VisualEffectBlur: NSViewRepresentable {
         view.blendingMode = blendingMode
         view.state = .active
         view.isEmphasized = true
+        view.alphaValue = alpha
         return view
     }
 
@@ -1718,170 +1866,316 @@ struct VisualEffectBlur: NSViewRepresentable {
         nsView.material = material
         nsView.blendingMode = blendingMode
         nsView.state = .active
+        nsView.alphaValue = alpha
     }
 }
 
-/// Smooth one-way left-to-right comet shimmer inside an active stage pill (never shrinks backwards).
-struct DirectionalShimmerCapsule: View {
-    let color: Color
-    let height: CGFloat
+/// Custom AppKit opacity scrubber (`mouseDownCanMoveWindow == false` + `acceptsFirstMouse == true`)
+/// so dragging inside `FloatingHudPanel` smoothly adjusts opacity without moving the floating window.
+final class OpacityTrackNSView: NSView {
+    var value: Double = 0.94 {
+        didSet {
+            if abs(oldValue - value) > 0.0005 {
+                needsDisplay = true
+            }
+        }
+    }
+    var onValueChanged: ((Double, Bool) -> Void)?
+
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: 20)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let insetX: CGFloat = 7.0
+        let trackH: CGFloat = 4.5
+        let usableW = max(12.0, bounds.width - insetX * 2.0)
+        let midY = bounds.midY
+
+        let norm = CGFloat(
+            max(0.0, min(1.0, (value - HudSettings.minOpacity) / (HudSettings.maxOpacity - HudSettings.minOpacity)))
+        )
+        let thumbX = insetX + usableW * norm
+
+        let trackRect = NSRect(x: insetX, y: midY - trackH / 2.0, width: usableW, height: trackH)
+        let groovePath = NSBezierPath(roundedRect: trackRect, xRadius: trackH / 2.0, yRadius: trackH / 2.0)
+        NSColor(calibratedWhite: 0.0, alpha: 0.48).setFill()
+        groovePath.fill()
+        NSColor(calibratedWhite: 1.0, alpha: 0.14).setStroke()
+        groovePath.lineWidth = 0.6
+        groovePath.stroke()
+
+        let fillW = max(trackH, thumbX - insetX)
+        let fillRect = NSRect(x: insetX, y: midY - trackH / 2.0, width: min(usableW, fillW), height: trackH)
+        let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: trackH / 2.0, yRadius: trackH / 2.0)
+        if let grad = NSGradient(colors: [
+            NSColor(calibratedRed: 0.36, green: 0.45, blue: 0.96, alpha: 1.0),
+            NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 1.0),
+            NSColor(calibratedRed: 0.20, green: 0.86, blue: 0.78, alpha: 1.0),
+        ]) {
+            grad.draw(in: fillPath, angle: 0)
+        } else {
+            NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 1.0).setFill()
+            fillPath.fill()
+        }
+
+        let thumbR: CGFloat = 6.2
+        let thumbRect = NSRect(x: thumbX - thumbR, y: midY - thumbR, width: thumbR * 2.0, height: thumbR * 2.0)
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.45)
+        shadow.shadowBlurRadius = 3.5
+        shadow.shadowOffset = NSSize(width: 0, height: -1)
+        shadow.set()
+        let thumbPath = NSBezierPath(ovalIn: thumbRect)
+        NSColor.white.setFill()
+        thumbPath.fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        let ringPath = NSBezierPath(ovalIn: thumbRect.insetBy(dx: 0.6, dy: 0.6))
+        NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 0.85).setStroke()
+        ringPath.lineWidth = 1.2
+        ringPath.stroke()
+    }
+
+    private func valueForEvent(_ event: NSEvent) -> Double {
+        let pt = convert(event.locationInWindow, from: nil)
+        let insetX: CGFloat = 7.0
+        let usableW = max(12.0, bounds.width - insetX * 2.0)
+        let norm = Double(max(0.0, min(1.0, (pt.x - insetX) / usableW)))
+        let raw = HudSettings.minOpacity + norm * (HudSettings.maxOpacity - HudSettings.minOpacity)
+        return (raw * 100.0).rounded() / 100.0
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let v = valueForEvent(event)
+        value = v
+        onValueChanged?(v, false)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        let v = valueForEvent(event)
+        value = v
+        onValueChanged?(v, false)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        let v = valueForEvent(event)
+        value = v
+        onValueChanged?(v, true)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
+            ? event.scrollingDeltaX
+            : -event.scrollingDeltaY
+        guard abs(delta) > 0.05 else { return }
+        let step = delta > 0 ? 0.02 : -0.02
+        let next = min(HudSettings.maxOpacity, max(HudSettings.minOpacity, value + step))
+        let rounded = (next * 100.0).rounded() / 100.0
+        value = rounded
+        onValueChanged?(rounded, false)
+    }
+}
+
+struct HudOpacityScrubber: NSViewRepresentable {
+    var value: Double
+    var onChange: (Double, Bool) -> Void
+
+    func makeNSView(context: Context) -> OpacityTrackNSView {
+        let v = OpacityTrackNSView()
+        v.value = value
+        v.onValueChanged = onChange
+        return v
+    }
+
+    func updateNSView(_ nsView: OpacityTrackNSView, context: Context) {
+        nsView.value = value
+        nsView.onValueChanged = onChange
+    }
+}
+
+/// Recessed obsidian-glass optical fiber progress track with internal liquid sheen,
+/// focused specular laser tip, and subtle forward ambient ripple.
+struct ObsidianLaserBar: View {
+    let progressClosure: (Date) -> Double
+    let colors: [Color]
+    let glow: Color
+    var height: CGFloat = 4.0
+    var isPaused: Bool = false
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            let cycle = 1.45
-            let raw = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle
-            let progress = CGFloat(raw)
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let rawProgress = CGFloat(min(1.0, max(0.06, progressClosure(timeline.date))))
+            let sheenPhase = CGFloat(t.truncatingRemainder(dividingBy: 1.65) / 1.65)
+            let ghostPhase = CGFloat(t.truncatingRemainder(dividingBy: 2.30) / 2.30)
+            let breath = isPaused ? CGFloat(0.42 + 0.42 * 0.5 * (1.0 + sin(t * 2.8))) : 0.66
 
             GeometryReader { geo in
                 let w = geo.size.width
-                let cometWidth = max(24, w * 0.58)
-                let startX = -cometWidth + (w + cometWidth) * progress
+                let fillW = round(max(min(w, 14), min(w, w * rawProgress)) * 2.0) / 2.0
+                let unlitW = max(0, w - fillW)
+                let ghostW = min(64, max(26, unlitW * 0.52))
+                let ghostX = fillW - 10 + (unlitW + ghostW) * ghostPhase - ghostW
+                let tipW = min(16, max(6, fillW * 0.28))
 
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(color.opacity(0.28))
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: color.opacity(0.0), location: 0.0),
-                                    .init(color: color.opacity(0.95), location: 0.48),
-                                    .init(color: Color.white.opacity(0.92), location: 0.62),
-                                    .init(color: color.opacity(0.0), location: 1.0),
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                    // 1. Machined dark-glass groove + ambient ghost echo
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.46))
+                        Capsule()
+                            .fill(glow.opacity(0.055))
+
+                        if !isPaused && unlitW > 18 {
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.clear, glow.opacity(0.20), .clear],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: ghostW, height: height)
+                                .offset(x: ghostX)
+                        }
+                    }
+                    .frame(width: w, height: height)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.085), lineWidth: 0.6)
+                    )
+
+                    // 2. Luminous chromatic core + liquid sheen + seamless laser flare tip
+                    ZStack(alignment: .trailing) {
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: colors,
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .frame(width: cometWidth, height: height)
-                        .offset(x: startX)
+
+                        VStack(spacing: 0) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(height: max(1.0, height * 0.28))
+                            Spacer(minLength: 0)
+                        }
+
+                        if !isPaused {
+                            let waveW = max(20, fillW * 0.45)
+                            let waveOffset = -fillW + (fillW + waveW) * sheenPhase
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.clear, Color.white.opacity(0.40), .clear],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: waveW, height: height)
+                                .offset(x: waveOffset)
+                        }
+
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .clear, location: 0.0),
+                                        .init(color: Color.white.opacity(isPaused ? 0.45 : 0.60), location: 0.65),
+                                        .init(color: Color.white.opacity(isPaused ? 0.82 : 0.95), location: 1.0),
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: tipW, height: height)
+                    }
+                    .frame(width: fillW, height: height)
+                    .clipShape(Capsule())
+                    .shadow(color: glow.opacity(breath), radius: 4.0, x: 0, y: 0)
                 }
-                .clipShape(Capsule())
             }
             .frame(height: height)
         }
     }
 }
 
-/// Redesigned Dual-Mode Progress Track:
-/// - Mode A (`task.md` exists): Discrete Milestone Capsule Blocks (`[■■■◫□] 3/5 · 60%`)
-/// - Mode B (Active turn, no `task.md`): 4-Stage Lifecycle Stepper (`思考` → `执行 · N步` → `回复` → `完成`)
+/// Obsidian Laser Progress Track:
+/// - Checklist Mode (`task.md` exists): Crisp glass milestone capsules (`<= 10`) or exact laser track (`> 10`).
+/// - Open-Ended Turn Mode: Full-width machined obsidian laser rail with zero redundant stage label clutter.
 struct SessionProgressTrack: View {
     let session: SessionSnapshot
 
+    private let sky = Color(red: 0.22, green: 0.74, blue: 0.98)
+    private let cyan = Color(red: 0.16, green: 0.86, blue: 0.84)
+    private let mint = Color(red: 0.20, green: 0.85, blue: 0.62)
+
     var body: some View {
-        if session.phase.isActive, let ts = session.taskStats {
-            VStack(alignment: .leading, spacing: 4) {
-                if ts.total <= 12 {
-                    HStack(spacing: 3.5) {
-                        ForEach(0..<ts.total, id: \.self) { idx in
-                            if idx < ts.done {
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color(red: 0.22, green: 0.74, blue: 0.96),
-                                                Color(red: 0.20, green: 0.86, blue: 0.62),
-                                            ],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(height: 5)
-                            } else if idx < ts.done + max(ts.inProgress, session.phase.isActive ? 1 : 0) && session.phase.isActive {
-                                DirectionalShimmerCapsule(color: session.phase.accentColor, height: 5)
-                            } else {
-                                Capsule()
-                                    .fill(Color.white.opacity(0.09))
-                                    .frame(height: 5)
-                            }
-                        }
-                    }
-                } else {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.white.opacity(0.09))
-                                .frame(height: 5)
+        if session.phase.isActive, let ts = session.taskStats, ts.total > 0 {
+            if ts.total <= 10 {
+                let activeLimit = ts.done + max(ts.inProgress, 1)
+                HStack(spacing: 3.5) {
+                    ForEach(0..<ts.total, id: \.self) { idx in
+                        if idx < ts.done {
                             Capsule()
                                 .fill(
                                     LinearGradient(
-                                        colors: [
-                                            Color(red: 0.22, green: 0.74, blue: 0.96),
-                                            Color(red: 0.20, green: 0.86, blue: 0.62),
-                                        ],
+                                        colors: [sky, mint],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
-                                .frame(width: max(8, geo.size.width * CGFloat(ts.percent) / 100.0), height: 5)
-                        }
-                    }
-                    .frame(height: 5)
-                }
-
-                HStack(spacing: 5) {
-                    Text("清单 \(ts.done)/\(ts.total) · \(ts.percent)%")
-                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                        .foregroundColor(Color(red: 0.28, green: 0.88, blue: 0.68))
-                        .fixedSize()
-                    if !ts.currentItem.isEmpty {
-                        Text("· \(ts.currentItem)")
-                            .font(.system(size: 9.5))
-                            .foregroundColor(.white.opacity(0.54))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            .padding(.top, 2)
-        } else if session.phase.isActive {
-            let activeStage = session.lifecycleStage
-            let execLabel: String = {
-                if session.phase == .waiting { return "待确认" }
-                if session.turnToolCount > 0 { return "执行 · \(session.turnToolCount)步" }
-                return "执行"
-            }()
-            let stages: [(idx: Int, title: String)] = [
-                (1, "思考"),
-                (2, execLabel),
-                (3, "回复"),
-                (4, "完成"),
-            ]
-
-            VStack(spacing: 3.5) {
-                HStack(spacing: 5) {
-                    ForEach(stages, id: \.idx) { st in
-                        if st.idx < activeStage {
-                            Capsule()
-                                .fill(session.phase.accentColor.opacity(0.62))
-                                .frame(height: 4.5)
-                        } else if st.idx == activeStage {
-                            DirectionalShimmerCapsule(color: session.phase.accentColor, height: 4.5)
+                                .frame(height: 4.0)
+                                .shadow(color: mint.opacity(0.30), radius: 2.5)
+                        } else if idx < activeLimit {
+                            ObsidianLaserBar(
+                                progressClosure: { _ in 0.60 },
+                                colors: session.phase == .waiting ? session.phase.progressGradientColors : [sky, cyan],
+                                glow: session.phase == .waiting ? session.phase.progressGlowColor : cyan,
+                                height: 4.0,
+                                isPaused: session.phase == .waiting
+                            )
                         } else {
                             Capsule()
-                                .fill(Color.white.opacity(0.09))
-                                .frame(height: 4.5)
-                            }
+                                .fill(Color.black.opacity(0.46))
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(Color.white.opacity(0.085), lineWidth: 0.6)
+                                )
+                                .frame(height: 4.0)
+                        }
                     }
                 }
-
-                HStack(spacing: 5) {
-                    ForEach(stages, id: \.idx) { st in
-                        Text(st.title)
-                            .font(.system(size: 9, weight: st.idx == activeStage ? .bold : .medium))
-                            .foregroundColor(
-                                st.idx == activeStage
-                                    ? session.phase.accentColor
-                                    : (st.idx < activeStage ? .white.opacity(0.62) : .white.opacity(0.28))
-                            )
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .lineLimit(1)
-                    }
-                }
+                .padding(.top, 1.5)
+            } else {
+                ObsidianLaserBar(
+                    progressClosure: { now in session.estimatedProgress(at: now) },
+                    colors: [sky, cyan, mint],
+                    glow: mint,
+                    height: 4.0,
+                    isPaused: session.phase == .waiting
+                )
+                .padding(.top, 1.5)
             }
-            .padding(.top, 2)
+        } else if session.phase.isActive {
+            ObsidianLaserBar(
+                progressClosure: { now in session.estimatedProgress(at: now) },
+                colors: session.phase.progressGradientColors,
+                glow: session.phase.progressGlowColor,
+                height: 4.0,
+                isPaused: session.phase == .waiting
+            )
+            .padding(.top, 1.5)
         }
     }
 }
@@ -1891,6 +2185,11 @@ struct HudRootView: View {
 
     var body: some View {
         let cornerRadius: CGFloat = vm.isExpanded ? 20 : 22
+        let clampedOp = vm.settings.clampedOpacity
+        let normOp = max(0.0, min(1.0, (clampedOp - HudSettings.minOpacity) / (HudSettings.maxOpacity - HudSettings.minOpacity)))
+        let blurAlpha = 0.28 + 0.72 * normOp
+        let tintAlpha = 0.44 + 0.42 * normOp
+
         let borderHighlightColor: Color = {
             if let banner = vm.flashBanner {
                 return banner.color.opacity(0.92)
@@ -1910,9 +2209,9 @@ struct HudRootView: View {
         }
         .background(
             ZStack {
-                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow, alpha: CGFloat(blurAlpha))
                 Color(red: 0.05, green: 0.07, blue: 0.12)
-                    .opacity(max(0.68, vm.settings.opacity * 0.86))
+                    .opacity(tintAlpha)
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         )
@@ -1920,7 +2219,6 @@ struct HudRootView: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(borderHighlightColor, lineWidth: vm.flashBanner != nil ? 1.8 : 1.1)
         )
-        .opacity(vm.isAllIdleForLong ? 0.54 : 1.0)
         .padding(6)
     }
 }
@@ -2009,23 +2307,19 @@ struct CollapsedCapsuleView: View {
             .padding(.bottom, (primary?.phase.isActive == true) ? 5 : 7)
 
             if let s = primary, s.phase.isActive {
-                HStack(spacing: 3.5) {
-                    ForEach(1...4, id: \.self) { st in
-                        if st < s.lifecycleStage {
-                            Capsule()
-                                .fill(s.phase.accentColor.opacity(0.62))
-                                .frame(height: 2.5)
-                        } else if st == s.lifecycleStage {
-                            DirectionalShimmerCapsule(color: s.phase.accentColor, height: 2.5)
-                        } else {
-                            Capsule()
-                                .fill(Color.white.opacity(0.10))
-                                .frame(height: 2.5)
-                        }
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 5)
+                ObsidianLaserBar(
+                    progressClosure: { now in s.estimatedProgress(at: now) },
+                    colors: s.taskStats != nil
+                        ? [Color(red: 0.22, green: 0.74, blue: 0.98), Color(red: 0.16, green: 0.86, blue: 0.84), Color(red: 0.20, green: 0.85, blue: 0.62)]
+                        : s.phase.progressGradientColors,
+                    glow: s.taskStats != nil
+                        ? Color(red: 0.20, green: 0.85, blue: 0.62)
+                        : s.phase.progressGlowColor,
+                    height: 2.8,
+                    isPaused: s.phase == .waiting
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 5.5)
             }
         }
         .frame(width: 344)
@@ -2063,6 +2357,25 @@ struct ExpandedHudView: View {
                     .clipShape(Capsule())
 
                 Spacer()
+
+                let opacityPct = Int(round(vm.settings.clampedOpacity * 100.0))
+
+                Button(action: {
+                    vm.toggleOpacityBar()
+                }) {
+                    Image(systemName: "circle.lefthalf.filled")
+                        .font(.system(size: 11))
+                        .foregroundColor(
+                            vm.isOpacityBarOpen
+                                ? Color(red: 0.35, green: 0.68, blue: 1.0)
+                                : (opacityPct < 90 ? Color(red: 0.48, green: 0.78, blue: 1.0) : .white.opacity(0.75))
+                        )
+                        .frame(width: 22, height: 22)
+                        .background(Color.white.opacity(vm.isOpacityBarOpen ? 0.16 : 0.07))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("调节悬浮窗透明度（当前不透明度 \(opacityPct)%）")
 
                 Button(action: {
                     vm.updateSettings { $0.soundEnabled.toggle() }
@@ -2105,6 +2418,63 @@ struct ExpandedHudView: View {
             }
             .padding(.horizontal, 12)
             .padding(.top, 10)
+
+            if vm.isOpacityBarOpen {
+                let pct = Int(round(vm.settings.clampedOpacity * 100.0))
+                let presets: [Int] = [35, 65, 94]
+                HStack(spacing: 7) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "circle.dotted")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.58))
+                        Text("不透明度")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.78))
+                            .fixedSize()
+                    }
+
+                    HudOpacityScrubber(value: vm.settings.clampedOpacity) { nextVal, isFinal in
+                        vm.setOpacity(nextVal, persistImmediately: isFinal)
+                    }
+                    .frame(height: 20)
+
+                    HStack(spacing: 3.5) {
+                        ForEach(presets, id: \.self) { p in
+                            let isCurrent = abs(pct - p) <= 2
+                            Button(action: {
+                                vm.setOpacity(Double(p) / 100.0, persistImmediately: true)
+                            }) {
+                                Text("\(p)%")
+                                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(isCurrent ? Color(red: 0.88, green: 0.96, blue: 1.0) : .white.opacity(0.58))
+                                    .padding(.horizontal, 5.5)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(isCurrent ? Color(red: 0.22, green: 0.74, blue: 0.98).opacity(0.28) : Color.white.opacity(0.07))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    Text("\(pct)%")
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
+                        .frame(width: 34, alignment: .trailing)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5.5)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.white.opacity(0.055))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.7)
+                )
+                .padding(.horizontal, 10)
+            }
 
             if let banner = vm.flashBanner {
                 HStack(spacing: 6) {
@@ -2277,26 +2647,53 @@ struct SessionCardRow: View {
                         }
                     }
 
-                    // Row 3 (Active or Error): Live action detail + tool mix
+                    // Row 3 (Active or Error): Live action detail + compact step/checklist telemetry
                     if session.phase.isActive || session.phase == .error {
+                        let statusLine: String = {
+                            if let ts = session.taskStats,
+                               !ts.currentItem.isEmpty,
+                               session.phase == .thinking {
+                                return ts.currentItem
+                            }
+                            return session.detailText
+                        }()
+
                         HStack(spacing: 6) {
-                            Text(session.detailText)
+                            Text(statusLine)
                                 .font(.system(size: 10.5, weight: .medium))
-                                .foregroundColor(session.phase == .waiting ? session.phase.accentColor : .white.opacity(0.84))
+                                .foregroundColor(
+                                    session.phase == .waiting || session.phase == .error
+                                        ? session.phase.accentColor
+                                        : .white.opacity(0.86)
+                                )
                                 .lineLimit(1)
                                 .truncationMode(.tail)
+
                             Spacer(minLength: 4)
-                            if !session.turnToolMix.isEmpty {
-                                Text(session.turnToolMix)
-                                    .font(.system(size: 9.5, design: .monospaced))
-                                    .foregroundColor(.white.opacity(0.48))
-                                    .lineLimit(1)
+
+                            if session.phase.isActive, let ts = session.taskStats, ts.total > 0 {
+                                Text("清单 \(ts.done)/\(ts.total) · \(ts.percent)%")
+                                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(Color(red: 0.22, green: 0.86, blue: 0.64))
                                     .fixedSize()
+                            } else if session.turnToolCount > 0 {
+                                HStack(spacing: 3.5) {
+                                    Text("\(session.turnToolCount) 步")
+                                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(session.phase.accentColor.opacity(0.95))
+                                    if !session.turnToolMix.isEmpty {
+                                        Text("· \(session.turnToolMix)")
+                                            .font(.system(size: 9.5, design: .monospaced))
+                                            .foregroundColor(.white.opacity(0.46))
+                                    }
+                                }
+                                .lineLimit(1)
+                                .fixedSize()
                             }
                         }
                     }
 
-                    // Row 4: Redesigned Progress Visualization (Active turns only)
+                    // Row 4: Obsidian Laser Progress Track (Active turns only)
                     SessionProgressTrack(session: session)
                 }
                 .padding(.horizontal, 10)
@@ -2384,11 +2781,14 @@ final class HoverTrackingHostingView<Content: View>: NSHostingView<Content> {
 // MARK: - Application Delegate & Menu Bar Controller
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var vm: HudViewModel!
     private var panel: FloatingHudPanel!
     private var hostingView: HoverTrackingHostingView<HudRootView>!
     private var statusItem: NSStatusItem!
+    private let statusMenu = NSMenu()
+    private weak var menuOpacityValueLabel: NSTextField?
+    private weak var opacityParentMenuItem: NSMenuItem?
     private var isProgrammaticMove = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -2400,13 +2800,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         vm.onLayoutChange = { [weak self] in
             self?.syncPanelVisibilityAndFrame()
-            self?.rebuildMenuState()
+        }
+        vm.onAlphaChange = { [weak self] in
+            self?.syncPanelAlpha()
         }
         vm.onStatusChange = { [weak self] in
             self?.updateStatusItemAppearance()
         }
 
         syncPanelVisibilityAndFrame()
+        syncPanelAlpha()
         updateStatusItemAppearance()
         vm.writeHelperStatus()
     }
@@ -2506,14 +2909,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.setFrame(newFrame, display: true, animate: false)
         isProgrammaticMove = false
 
+        syncPanelAlpha()
+
         if !panel.isVisible {
             panel.orderFrontRegardless()
         }
     }
 
+    private func syncPanelAlpha() {
+        guard panel != nil else { return }
+        let base = vm.settings.clampedOpacity
+        let target: Double
+        if vm.flashBanner != nil {
+            target = max(base, 0.90)
+        } else if vm.isAllIdleForLong {
+            target = max(0.16, base * 0.56)
+        } else {
+            target = base
+        }
+        if abs(panel.alphaValue - CGFloat(target)) > 0.002 {
+            panel.alphaValue = CGFloat(target)
+        }
+    }
+
     private func setupStatusBarMenu() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        rebuildMenuState()
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusMenu.delegate = self
+        populateStatusMenu(statusMenu)
+        statusItem.menu = statusMenu
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        populateStatusMenu(menu)
     }
 
     private func updateStatusItemAppearance() {
@@ -2531,12 +2958,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "AGY HUD")
-        button.imagePosition = .imageLeading
-        button.title = active > 0 ? " \(active)" : ""
+        button.imagePosition = .imageOnly
+        button.title = ""
     }
 
-    private func rebuildMenuState() {
-        let menu = NSMenu()
+    private func populateStatusMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
 
         let toggleVis = NSMenuItem(
             title: vm.settings.visible ? "隐藏桌面悬浮窗" : "显示桌面悬浮窗",
@@ -2591,6 +3018,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         posParent.submenu = posMenu
         menu.addItem(posParent)
 
+        // Opacity submenu with live NSSlider + quick presets
+        let currentPct = Int(round(vm.settings.clampedOpacity * 100.0))
+        let opMenu = NSMenu()
+
+        let sliderContainer = NSView(frame: NSRect(x: 0, y: 0, width: 230, height: 32))
+        let slider = NSSlider(
+            value: vm.settings.clampedOpacity,
+            minValue: HudSettings.minOpacity,
+            maxValue: HudSettings.maxOpacity,
+            target: self,
+            action: #selector(menuOpacitySliderChanged(_:))
+        )
+        slider.isContinuous = true
+        slider.frame = NSRect(x: 14, y: 6, width: 162, height: 20)
+        sliderContainer.addSubview(slider)
+
+        let valLabel = NSTextField(labelWithString: "\(currentPct)%")
+        valLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .semibold)
+        valLabel.alignment = .right
+        valLabel.frame = NSRect(x: 178, y: 7, width: 40, height: 18)
+        sliderContainer.addSubview(valLabel)
+        self.menuOpacityValueLabel = valLabel
+
+        let sliderItem = NSMenuItem()
+        sliderItem.view = sliderContainer
+        opMenu.addItem(sliderItem)
+        opMenu.addItem(.separator())
+
+        let opacityPresets: [(pct: Int, title: String)] = [
+            (100, "100%（完全不透明）"),
+            (94, "94%（默认微透）"),
+            (75, "75%（轻度通透）"),
+            (55, "55%（半透明）"),
+            (35, "35%（高透视水印）"),
+        ]
+        for op in opacityPresets {
+            let item = NSMenuItem(title: op.title, action: #selector(selectOpacityPreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = op.pct
+            item.state = abs(currentPct - op.pct) <= 2 ? .on : .off
+            opMenu.addItem(item)
+        }
+
+        let opParent = NSMenuItem(title: "悬浮窗透明度（\(currentPct)%）", action: nil, keyEquivalent: "")
+        opParent.submenu = opMenu
+        self.opacityParentMenuItem = opParent
+        menu.addItem(opParent)
+
         menu.addItem(.separator())
 
         let clearItem = NSMenuItem(
@@ -2618,8 +3093,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         quitItem.target = self
         menu.addItem(quitItem)
-
-        statusItem?.menu = menu
     }
 
     @objc private func toggleVisible() {
@@ -2645,6 +3118,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             $0.customTopCenterX = nil
             $0.customTopY = nil
         }
+    }
+
+    @objc private func menuOpacitySliderChanged(_ sender: NSSlider) {
+        let val = sender.doubleValue
+        let pct = Int(round(val * 100.0))
+        menuOpacityValueLabel?.stringValue = "\(pct)%"
+        opacityParentMenuItem?.title = "悬浮窗透明度（\(pct)%）"
+        vm.setOpacity(val, persistImmediately: false)
+    }
+
+    @objc private func selectOpacityPreset(_ sender: NSMenuItem) {
+        guard let pct = sender.representedObject as? Int else { return }
+        vm.setOpacity(Double(pct) / 100.0, persistImmediately: true)
     }
 
     @objc private func clearCompletedFromMenu() {
