@@ -1,0 +1,26 @@
+{
+  "command": "node",
+  "args": ["main.mjs"],
+  "restart_policy": "always",
+  "display_name": "Floating HUD",
+  "description": "Always-on-top macOS Dynamic Capsule floating HUD controller, instant conversation jump bridge, and real-time multi-session progress dashboard.",
+  "has_web_ui": true,
+  "agent_permissions": {
+    "allows_user_interactions": false
+  },
+  "ui_config": {
+    "display_name": "Floating HUD",
+    "views": [
+      {
+        "path": "/?v=3",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "title": "Floating HUD"
+      },
+      {
+        "path": "/bridge?v=3",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_SIDEBAR",
+        "title": "Floating HUD"
+      }
+    ]
+  }
+}

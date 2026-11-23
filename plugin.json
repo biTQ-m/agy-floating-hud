@@ -1,0 +1,21 @@
+{
+  "name": "agy-floating-hud",
+  "displayName": "AGY Floating HUD",
+  "description": "Always-on-top macOS Dynamic Capsule floating HUD for Antigravity Desktop: real-time session progress, live tool actions, task.md checklist percentage, multi-session tracking, and completion alerts.",
+  "version": "1.0.0",
+  "author": {
+    "name": "biTQ-m",
+    "url": "https://github.com/biTQ-m"
+  },
+  "homepage": "https://github.com/biTQ-m/agy-floating-hud",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/biTQ-m/agy-floating-hud.git"
+  },
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "打开 AGY Floating HUD 悬浮窗控制面板",
+    "把桌面悬浮进度窗移到右上角并开启完成提示音",
+    "查看当前所有活跃会话的实时进度与完成状态"
+  ]
+}

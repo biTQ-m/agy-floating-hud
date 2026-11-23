@@ -1,0 +1,44 @@
+{
+  "agy-floating-hud-tracker": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/hud_tracker.py",
+        "timeout": 5
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/hud_tracker.py",
+        "timeout": 5
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/hud_tracker.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/hud_tracker.py",
+        "timeout": 5
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ./hooks/hud_tracker.py",
+        "timeout": 5
+      }
+    ]
+  }
+}

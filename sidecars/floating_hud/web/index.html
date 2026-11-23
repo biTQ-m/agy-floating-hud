@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AGY Floating HUD</title>
+  <script src="/preload.js"></script>
+  <style>
+    /* Use --hud-* namespace so host preload.js theme variables (like --muted) never clobber text contrast */
+    :root {
+      color-scheme: dark;
+      --hud-bg: #0b0e14;
+      --hud-bg-glow: radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.09), transparent 42%),
+                     radial-gradient(circle at 85% 0%, rgba(129, 140, 248, 0.08), transparent 40%);
+      --hud-surface: #121722;
+      --hud-surface-2: #181f2e;
+      --hud-surface-hover: #1f293d;
+      --hud-border: rgba(255, 255, 255, 0.085);
+      --hud-border-strong: rgba(255, 255, 255, 0.16);
+      --hud-text-1: #f8fafc;
+      --hud-text-2: #94a3b8;
+      --hud-text-3: #64748b;
+      --hud-sky: #38bdf8;
+      --hud-indigo: #818cf8;
+      --hud-teal: #2dd4bf;
+      --hud-emerald: #34d399;
+      --hud-amber: #fbbf24;
+      --hud-rose: #fb7185;
+      --hud-radius-lg: 16px;
+      --hud-radius-md: 12px;
+      --hud-radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 100%;
+      background-color: var(--hud-bg) !important;
+      background-image: var(--hud-bg-glow) !important;
+      color: var(--hud-text-1) !important;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif !important;
+      font-size: 13px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select {
+      font-family: inherit;
+    }
+
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 20px 18px 36px;
+    }
+
+    /* --- Hero Topbar --- */
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      background: linear-gradient(180deg, rgba(24, 31, 46, 0.85), rgba(18, 23, 34, 0.92));
+      border: 1px solid var(--hud-border);
+      border-radius: var(--hud-radius-lg);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(52, 211, 153, 0.16));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: var(--hud-text-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-copy p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--hud-text-2);
+    }
+
+    .hero-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--hud-emerald);
+      border: 1px solid rgba(52, 211, 153, 0.28);
+    }
+
+    .status-chip.offline {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--hud-text-2);
+      border-color: var(--hud-border);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-surface-2);
+      color: var(--hud-text-1);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--hud-surface-hover);
+      border-color: var(--hud-border-strong);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.20), rgba(129, 140, 248, 0.20));
+      border-color: rgba(56, 189, 248, 0.42);
+      color: #e0f2fe;
+    }
+
+    .btn.primary:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(129, 140, 248, 0.28));
+      border-color: rgba(56, 189, 248, 0.62);
+    }
+
+    .btn.subtle-danger {
+      color: #cbd5e1;
+    }
+
+    .btn.subtle-danger:hover {
+      color: #fecdd3;
+      border-color: rgba(251, 113, 133, 0.4);
+      background: rgba(251, 113, 133, 0.1);
+    }
+
+    /* --- KPI Stat Strip --- */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card {
+      background: var(--hud-surface);
+      border: 1px solid var(--hud-border);
+      border-radius: var(--hud-radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .kpi-meta span {
+      display: block;
+      font-size: 11.5px;
+      color: var(--hud-text-2);
+      font-weight: 500;
+    }
+
+    .kpi-meta strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .kpi-sky .kpi-meta strong { color: var(--hud-sky); }
+    .kpi-sky .kpi-icon { background: rgba(56, 189, 248, 0.12); color: var(--hud-sky); }
+
+    .kpi-amber .kpi-meta strong { color: var(--hud-amber); }
+    .kpi-amber .kpi-icon { background: rgba(251, 191, 36, 0.12); color: var(--hud-amber); }
+
+    .kpi-emerald .kpi-meta strong { color: var(--hud-emerald); }
+    .kpi-emerald .kpi-icon { background: rgba(52, 211, 153, 0.12); color: var(--hud-emerald); }
+
+    /* --- Adaptive Two-Column Main Grid --- */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    @media (min-width: 820px) {
+      .workspace-grid {
+        grid-template-columns: 370px minmax(0, 1fr);
+      }
+    }
+
+    .panel-card {
+      background: var(--hud-surface);
+      border: 1px solid var(--hud-border);
+      border-radius: var(--hud-radius-lg);
+      padding: 16px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--hud-text-1);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .section-sub {
+      font-size: 11.5px;
+      color: var(--hud-text-2);
+    }
+
+    /* --- Interactive Mini macOS Screen Position Picker --- */
+    .screen-stage {
+      position: relative;
+      width: 100%;
+      height: 138px;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #162033 0%, #0d1320 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      margin-bottom: 14px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .screen-menubar {
+      height: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 9px;
+      color: var(--hud-text-3);
+    }
+
+    .screen-notch {
+      width: 46px;
+      height: 9px;
+      background: #06080d;
+      border-radius: 0 0 6px 6px;
+      margin: -1px auto 0;
+    }
+
+    .screen-dock {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 84px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pos-hotspot {
+      position: absolute;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      background: rgba(15, 23, 42, 0.65);
+      color: var(--hud-text-2);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pos-hotspot:hover {
+      border-style: solid;
+      border-color: rgba(56, 189, 248, 0.55);
+      color: var(--hud-text-1);
+      background: rgba(30, 41, 59, 0.9);
+    }
+
+    .pos-hotspot.active {
+      border-style: solid;
+      border-color: var(--hud-sky);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(52, 211, 153, 0.22));
+      color: #f0f9ff;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.28);
+    }
+
+    .pos-hotspot .mini-orb {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .pos-hotspot[data-pos="top_center"] {
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .pos-hotspot[data-pos="top_right"] {
+      top: 24px;
+      right: 10px;
+    }
+    .pos-hotspot[data-pos="bottom_left"] {
+      bottom: 22px;
+      left: 10px;
+    }
+    .pos-hotspot[data-pos="bottom_right"] {
+      bottom: 22px;
+      right: 10px;
+    }
+
+    .custom-pos-tag {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -35%);
+      font-size: 10.5px;
+      color: var(--hud-sky);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 9px;
+      border-radius: 999px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .custom-pos-tag.show {
+      opacity: 1;
+    }
+
+    /* --- Modern Switch Rows --- */
+    .setting-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+
+    .setting-copy {
+      min-width: 0;
+    }
+
+    .setting-copy .label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--hud-text-1);
+    }
+
+    .setting-copy .desc {
+      margin-top: 2px;
+      font-size: 11.5px;
+      color: var(--hud-text-2);
+      line-height: 1.38;
+    }
+
+    .value-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--hud-sky);
+    }
+
+    /* Apple-style Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slider-toggle::before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+
+    .switch input:checked + .slider-toggle {
+      background-color: var(--hud-sky);
+    }
+
+    .switch input:checked + .slider-toggle::before {
+      transform: translateX(18px);
+    }
+
+    /* Range & Segmented Count */
+    .range-wrap {
+      padding: 10px 4px 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 2px;
+    }
+
+    .range-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--hud-text-1);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--hud-sky);
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+    }
+
+    .seg-group {
+      display: inline-flex;
+      background: var(--hud-surface-2);
+      border: 1px solid var(--hud-border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .seg-btn {
+      border: none;
+      background: transparent;
+      color: var(--hud-text-2);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .seg-btn:hover {
+      color: var(--hud-text-1);
+    }
+
+    .seg-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: #e0f2fe;
+    }
+
+    /* --- Right Column: Session Filter & Stream --- */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .session-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .session-card {
+      position: relative;
+      background: var(--hud-surface-2);
+      border: 1px solid var(--hud-border);
+      border-radius: 13px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .session-card:hover {
+      background: var(--hud-surface-hover);
+      border-color: rgba(56, 189, 248, 0.38);
+      transform: translateY(-1px);
+    }
+
+    .session-card.is-active {
+      background: linear-gradient(180deg, rgba(30, 41, 62, 0.72), rgba(24, 31, 46, 0.9));
+      border-color: rgba(56, 189, 248, 0.30);
+    }
+
+    .session-card.phase-waiting {
+      border-color: rgba(251, 191, 36, 0.42);
+    }
+
+    .sc-row-1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .sc-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .sc-phase-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sc-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--hud-text-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sc-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--hud-sky);
+    }
+
+    .sc-badge.running_tool { background: rgba(129, 140, 248, 0.18); color: var(--hud-indigo); }
+    .sc-badge.waiting      { background: rgba(251, 191, 36, 0.18);  color: var(--hud-amber); }
+    .sc-badge.streaming    { background: rgba(45, 212, 191, 0.18);  color: var(--hud-teal); }
+    .sc-badge.completed    { background: rgba(52, 211, 153, 0.15);  color: var(--hud-emerald); }
+    .sc-badge.error,
+    .sc-badge.canceled     { background: rgba(251, 113, 133, 0.16); color: var(--hud-rose); }
+
+    .sc-right-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .sc-time {
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--hud-text-2);
+    }
+
+    .sc-dismiss {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--hud-text-2);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .sc-dismiss:hover {
+      background: rgba(251, 113, 133, 0.18);
+      color: #fecdd3;
+      border-color: rgba(251, 113, 133, 0.35);
+    }
+
+    .sc-row-2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-size: 12px;
+      color: var(--hud-text-2);
+    }
+
+    .ws-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(147, 197, 253, 0.12);
+      color: #93c5fd;
+      flex-shrink: 0;
+    }
+
+    .model-tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--hud-text-3);
+      flex-shrink: 0;
+    }
+
+    .prompt-snippet {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--hud-text-2);
+    }
+
+    .sc-row-3 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 7px;
+      font-size: 12px;
+    }
+
+    .sc-detail {
+      color: #e2e8f0;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sc-mix {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--hud-text-2);
+      flex-shrink: 0;
+    }
+
+    /* 4-Stage Segmented Stepper in Web Dashboard */
+    .stepper {
+      margin-top: 9px;
+    }
+
+    .stepper-bars {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .step-seg {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .step-seg.done {
+      background: rgba(56, 189, 248, 0.68);
+    }
+
+    .step-seg.current {
+      background: rgba(56, 189, 248, 0.24);
+    }
+
+    .step-seg.current::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 55%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, #38bdf8, #ffffff, transparent);
+      animation: cometSlide 1.4s linear infinite;
+    }
+
+    @keyframes cometSlide {
+      0%   { transform: translateX(-110%); }
+      100% { transform: translateX(210%); }
+    }
+
+    .stepper-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--hud-text-3);
+    }
+
+    .stepper-labels span.done {
+      color: var(--hud-text-2);
+    }
+
+    .stepper-labels span.current {
+      color: var(--hud-sky);
+      font-weight: 700;
+    }
+
+    /* Checklist Discrete Blocks */
+    .checklist-track {
+      margin-top: 9px;
+    }
+
+    .checklist-blocks {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .cl-block {
+      flex: 1;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .cl-block.done {
+      background: linear-gradient(90deg, var(--hud-sky), var(--hud-emerald));
+    }
+
+    .empty-box {
+      padding: 36px 18px;
+      text-align: center;
+      color: var(--hud-text-2);
+      border: 1px dashed var(--hud-border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .empty-box strong {
+      display: block;
+      color: var(--hud-text-1);
+      font-size: 13.5px;
+      margin-bottom: 4px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      background: #1e293b;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #f8fafc;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: all 0.18s ease;
+      z-index: 99;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Top Hero Bar -->
+    <header class="hero">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="20" height="8" rx="4" stroke="#38bdf8" stroke-width="1.8" fill="rgba(56,189,248,0.15)"/>
+            <circle cx="6.5" cy="9" r="2" fill="#34d399"/>
+            <line x1="10.5" y1="9" x2="18" y2="9" stroke="#f8fafc" stroke-width="1.8" stroke-linecap="round"/>
+            <rect x="4" y="16" width="16" height="3.5" rx="1.75" fill="rgba(52,211,153,0.45)"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1>AGY Floating HUD</h1>
+          <p>macOS 原生毛玻璃灵动胶囊 · 全屏置顶会话进度与一键跳转中枢</p>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div id="helperPill" class="status-chip offline">
+          <span class="pulse-dot"></span>
+          <span id="helperText">正在连接…</span>
+        </div>
+        <button id="btnToggleVis" class="btn primary">显示 / 隐藏浮窗</button>
+        <button id="btnClearTop" class="btn subtle-danger">🗑 清理已完成</button>
+        <button id="btnRestart" class="btn" title="重新启动 macOS 原生悬浮窗进程">↻ 重启助手</button>
+      </div>
+    </header>
+
+    <!-- 3 KPI Stat Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card kpi-sky">
+        <div class="kpi-meta">
+          <span>正在运行会话</span>
+          <strong id="kpiActive">0</strong>
+        </div>
+        <div class="kpi-icon">⚡</div>
+      </div>
+
+      <div class="kpi-card kpi-amber">
+        <div class="kpi-meta">
+          <span>等待你的确认</span>
+          <strong id="kpiWaiting">0</strong>
+        </div>
+        <div class="kpi-icon">⏳</div>
+      </div>
+
+      <div class="kpi-card kpi-emerald">
+        <div class="kpi-meta">
+          <span>近期已完成</span>
+          <strong id="kpiCompleted">0</strong>
+        </div>
+        <div class="kpi-icon">✓</div>
+      </div>
+    </section>
+
+    <!-- Main Two-Column Responsive Grid -->
+    <div class="workspace-grid">
+      <!-- Left Column: Visual Screen Placement + Preferences -->
+      <section class="panel-card">
+        <div class="section-head">
+          <div class="section-title">🖥 屏幕位置与交互偏好</div>
+          <span id="posLabelText" class="section-sub">右上角</span>
+        </div>
+
+        <!-- Interactive Mini macOS Screen -->
+        <div class="screen-stage" title="点击屏幕四角或顶部居中即可切换桌面胶囊位置">
+          <div class="screen-menubar">
+            <span> Antigravity</span>
+            <div class="screen-notch"></div>
+            <span>100%</span>
+          </div>
+
+          <button class="pos-hotspot" data-pos="top_center">
+            <span class="mini-orb"></span> 灵动岛下方
+          </button>
+          <button class="pos-hotspot" data-pos="top_right">
+            <span class="mini-orb"></span> 右上角
+          </button>
+          <button class="pos-hotspot" data-pos="bottom_left">
+            <span class="mini-orb"></span> 左下角
+          </button>
+          <button class="pos-hotspot" data-pos="bottom_right">
+            <span class="mini-orb"></span> 右下角
+          </button>
+
+          <div id="customPosBadge" class="custom-pos-tag">✦ 当前为自由拖拽坐标（点击四角可归位）</div>
+          <div class="screen-dock"></div>
+        </div>
+
+        <!-- Modern Switches -->
+        <div class="setting-list">
+          <div class="setting-item">
+            <div class="setting-copy">
+              <div class="label-row">显示桌面置顶悬浮窗</div>
+              <div class="desc">切换到浏览器、终端或全屏应用时依然实时可见</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chkVisible" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-copy">
+              <div class="label-row">固定展开多会话面板</div>
+              <div class="desc">关闭时默认收敛为单行胶囊，鼠标悬停自动展开</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chkPinned" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-copy">
+              <div class="label-row">完成与待确认轻提示音</div>
+              <div class="desc">完成播放 Glass 轻响，遇到提问播放 Tink 提醒</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chkSound" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-copy">
+              <div class="label-row">空闲 3 分钟自动半透明</div>
+              <div class="desc">全部任务完成后自动降低存在感，不挡代码视线</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chkAutoDim" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-copy">
+              <div class="label-row">最大追踪卡片数</div>
+              <div class="desc">展开悬浮面板时最多同屏列出的会话数量</div>
+            </div>
+            <div class="seg-group" id="maxCountGroup">
+              <button class="seg-btn" data-max="3">3</button>
+              <button class="seg-btn" data-max="4">4</button>
+              <button class="seg-btn" data-max="5">5</button>
+              <button class="seg-btn" data-max="6">6</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Opacity Range Slider -->
+        <div class="range-wrap">
+          <div class="range-header">
+            <span>毛玻璃背景浓度</span>
+            <span id="opacityVal" class="value-pill">94%</span>
+          </div>
+          <input type="range" id="rngOpacity" min="55" max="100" step="1" value="94" />
+        </div>
+      </section>
+
+      <!-- Right Column: Real-Time Session Stream -->
+      <section class="panel-card">
+        <div class="filter-bar">
+          <div>
+            <div class="section-title">📡 实时会话看板</div>
+            <div class="section-sub">点击任意卡片立即跳转到对应会话窗口</div>
+          </div>
+
+          <div class="seg-group" id="filterGroup">
+            <button class="seg-btn active" data-filter="all">全部</button>
+            <button class="seg-btn" data-filter="active">运行中</button>
+            <button class="seg-btn" data-filter="done">已完成</button>
+          </div>
+        </div>
+
+        <div id="sessionList" class="session-stream">
+          <div class="empty-box">正在同步实时会话状态…</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    function getFetch() {
+      return window.sidecar?.fetch ? window.sidecar.fetch.bind(window.sidecar) : window.fetch.bind(window);
+    }
+
+    async function apiGet(path) {
+      const res = await getFetch()(path, { method: 'GET' });
+      return res.json();
+    }
+
+    async function apiPost(path, body) {
+      const res = await getFetch()(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      return res.json();
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    // --- Instant Click-to-Jump Bridge from macOS Floating HUD ---
+    let lastHandledSeq = 0;
+
+    function performJump(nav) {
+      if (!nav || !nav.conversationId) return;
+      const seq = Number(nav.seq || 0);
+      if (seq && seq <= lastHandledSeq) return;
+      if (seq) lastHandledSeq = seq;
+
+      if (window.sidecar?.ui?.toggleConversation) {
+        window.sidecar.ui.toggleConversation(nav.conversationId, { openSidePanel: false });
+      }
+      if (seq) {
+        apiPost('/api/ack-nav', { seq }).catch(() => {});
+      }
+    }
+
+    async function runNavBridgeLoop() {
+      while (true) {
+        try {
+          const res = await apiGet(`/api/wait-nav?since=${lastHandledSeq}`);
+          if (res?.nav) {
+            performJump(res.nav);
+          }
+        } catch {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+    }
+
+    const PHASE_META = {
+      thinking:     { label: '思考中', color: '#38bdf8', active: true },
+      running_tool: { label: '执行中', color: '#818cf8', active: true },
+      waiting:      { label: '待确认', color: '#fbbf24', active: true },
+      streaming:    { label: '输出中', color: '#2dd4bf', active: true },
+      completed:    { label: '已完成', color: '#34d399', active: false },
+      error:        { label: '异常',   color: '#fb7185', active: false },
+      canceled:     { label: '已停止', color: '#94a3b8', active: false },
+      idle:         { label: '待命',   color: '#64748b', active: false },
+    };
+
+    const POS_NAMES = {
+      top_right: '右上角（推荐）',
+      top_center: '顶部居中 · 灵动岛位',
+      bottom_right: '右下角',
+      bottom_left: '左下角',
+      custom: '自定义拖拽位置',
+    };
+
+    let currentFilter = 'all';
+    let initialUiBuildTag = null;
+    let latestPayload = null;
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderProgressTrack(s, meta) {
+      if (!meta.active) return '';
+
+      if (s.taskStats && s.taskStats.total > 0) {
+        const ts = s.taskStats;
+        const blocks = [];
+        const cap = Math.min(12, ts.total);
+        const scaledDone = Math.round((ts.done / ts.total) * cap);
+        for (let i = 0; i < cap; i++) {
+          blocks.push(`<div class="cl-block ${i < scaledDone ? 'done' : ''}"></div>`);
+        }
+        return `
+          <div class="checklist-track">
+            <div class="checklist-blocks">${blocks.join('')}</div>
+            <div class="sc-mix" style="color:#34d399;">
+              清单 ${ts.done}/${ts.total} (${ts.percent}%)${ts.currentItem ? ' · ' + escapeHtml(ts.currentItem) : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      const stage = Number(s.stage || 1);
+      const execLabel = s.phase === 'waiting'
+        ? '待确认'
+        : (s.turnToolCount > 0 ? `执行 · ${s.turnToolCount}步` : '执行');
+      const labels = ['思考', execLabel, '回复', '完成'];
+
+      const barsHtml = [1, 2, 3, 4]
+        .map((idx) => {
+          const cls = idx < stage ? 'done' : idx === stage ? 'current' : '';
+          return `<div class="step-seg ${cls}"></div>`;
+        })
+        .join('');
+
+      const labelsHtml = labels
+        .map((txt, i) => {
+          const idx = i + 1;
+          const cls = idx < stage ? 'done' : idx === stage ? 'current' : '';
+          return `<span class="${cls}">${escapeHtml(txt)}</span>`;
+        })
+        .join('');
+
+      return `
+        <div class="stepper">
+          <div class="stepper-bars">${barsHtml}</div>
+          <div class="stepper-labels">${labelsHtml}</div>
+        </div>
+      `;
+    }
+
+    function render(data) {
+      if (!data?.ok) return;
+      latestPayload = data;
+
+      // Auto hot-reload iframe if web/index.html was updated on disk
+      if (data.uiBuildTag) {
+        if (initialUiBuildTag === null) {
+          initialUiBuildTag = data.uiBuildTag;
+        } else if (data.uiBuildTag !== initialUiBuildTag) {
+          window.location.reload();
+          return;
+        }
+      }
+
+      const { helper, settings, sessions = [] } = data;
+
+      // Header status chip
+      const pill = document.getElementById('helperPill');
+      const pillText = document.getElementById('helperText');
+      if (helper?.running) {
+        pill.className = 'status-chip';
+        pillText.textContent = `原生浮窗运行中 · PID ${helper.pid}`;
+      } else {
+        pill.className = 'status-chip offline';
+        pillText.textContent = helper?.installed ? '浮窗助手未启动' : '未编译原生组件';
+      }
+
+      // KPIs
+      let activeCnt = 0;
+      let waitingCnt = 0;
+      let completedCnt = 0;
+      for (const s of sessions) {
+        const meta = PHASE_META[s.phase] || PHASE_META.completed;
+        if (meta.active) activeCnt++;
+        else completedCnt++;
+        if (s.phase === 'waiting') waitingCnt++;
+      }
+      document.getElementById('kpiActive').textContent = String(activeCnt);
+      document.getElementById('kpiWaiting').textContent = String(waitingCnt);
+      document.getElementById('kpiCompleted').textContent = String(completedCnt);
+
+      const visBtn = document.getElementById('btnToggleVis');
+      visBtn.textContent = settings.visible ? '隐藏桌面浮窗' : '显示桌面浮窗';
+
+      const clearBtn = document.getElementById('btnClearTop');
+      clearBtn.textContent = completedCnt > 0 ? `🗑 清理已完成 (${completedCnt})` : '🗑 清理已完成';
+
+      // Switches & Sliders
+      document.getElementById('chkVisible').checked = Boolean(settings.visible);
+      document.getElementById('chkPinned').checked = Boolean(settings.pinnedExpanded);
+      document.getElementById('chkSound').checked = Boolean(settings.soundEnabled);
+      document.getElementById('chkAutoDim').checked = Boolean(settings.autoDimIdle);
+
+      const pct = Math.round((settings.opacity ?? 0.94) * 100);
+      document.getElementById('rngOpacity').value = String(pct);
+      document.getElementById('opacityVal').textContent = `${pct}%`;
+
+      // Screen position hotspots
+      const pos = settings.positionPreset || 'top_right';
+      document.getElementById('posLabelText').textContent = POS_NAMES[pos] || pos;
+      document.querySelectorAll('.pos-hotspot').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.pos === pos);
+      });
+      document.getElementById('customPosBadge').classList.toggle('show', pos === 'custom');
+
+      // Max count segmented buttons
+      const maxShown = Number(settings.maxSessionsShown || 5);
+      document.querySelectorAll('#maxCountGroup .seg-btn').forEach((btn) => {
+        btn.classList.toggle('active', Number(btn.dataset.max) === maxShown);
+      });
+
+      // Filter sessions
+      const filtered = sessions.filter((s) => {
+        const isAct = (PHASE_META[s.phase] || PHASE_META.completed).active;
+        if (currentFilter === 'active') return isAct;
+        if (currentFilter === 'done') return !isAct;
+        return true;
+      });
+
+      const listEl = document.getElementById('sessionList');
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-box">
+            <strong>${currentFilter === 'active' ? '当前没有正在运行的会话' : '暂无待展示的会话记录'}</strong>
+            <span>发起新的对话任务后，这里和桌面右上角胶囊会自动实时同步。</span>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered
+        .map((s) => {
+          const p = s.phase || 'completed';
+          const meta = PHASE_META[p] || PHASE_META.completed;
+          const title = s.conversationTitle || s.displayTitle || s.workspaceName || `会话 ${s.shortId}`;
+          const cardCls = [
+            'session-card',
+            meta.active ? 'is-active' : '',
+            p === 'waiting' ? 'phase-waiting' : '',
+          ].filter(Boolean).join(' ');
+
+          const row3Html = (meta.active || p === 'error')
+            ? `
+              <div class="sc-row-3">
+                <span class="sc-detail">${escapeHtml(s.detailText || '')}</span>
+                ${s.turnToolMix ? `<span class="sc-mix">${escapeHtml(s.turnToolMix)}</span>` : ''}
+              </div>
+            `
+            : '';
+
+          const dismissBtnHtml = !meta.active
+            ? `<button class="sc-dismiss" data-dismiss="${escapeHtml(s.id)}" title="从列表清理此已完成任务">✕</button>`
+            : '';
+
+          return `
+            <div class="${cardCls}" data-cid="${escapeHtml(s.id)}">
+              <div class="sc-row-1">
+                <div class="sc-title-group">
+                  <span class="sc-phase-dot" style="background:${meta.color};box-shadow:0 0 8px ${meta.color};"></span>
+                  <span class="sc-title">${escapeHtml(title)}</span>
+                  <span class="sc-badge ${escapeHtml(p)}">${meta.label}</span>
+                </div>
+                <div class="sc-right-meta">
+                  <span class="sc-time">${escapeHtml(s.timeBadge || '')}</span>
+                  ${dismissBtnHtml}
+                </div>
+              </div>
+
+              <div class="sc-row-2">
+                ${s.workspaceName ? `<span class="ws-pill">📁 ${escapeHtml(s.workspaceName)}</span>` : ''}
+                ${s.modelShortName ? `<span class="model-tag">${escapeHtml(s.modelShortName)}</span>` : ''}
+                <span class="prompt-snippet">${escapeHtml(s.promptTitle || (!meta.active && s.turnToolCount ? `本轮执行 ${s.turnToolCount} 步` : ''))}</span>
+              </div>
+
+              ${row3Html}
+              ${renderProgressTrack(s, meta)}
+            </div>
+          `;
+        })
+        .join('');
+
+      listEl.querySelectorAll('.session-card').forEach((card) => {
+        card.addEventListener('click', (e) => {
+          const dismissBtn = e.target.closest('[data-dismiss]');
+          if (dismissBtn) {
+            e.stopPropagation();
+            const cid = dismissBtn.dataset.dismiss;
+            apiPost('/api/dismiss-session', { conversationId: cid }).then(() => {
+              showToast('已移除该条完成记录');
+              setTimeout(refresh, 250);
+            });
+            return;
+          }
+          const cid = card.dataset.cid;
+          if (cid && window.sidecar?.ui?.toggleConversation) {
+            window.sidecar.ui.toggleConversation(cid, { openSidePanel: false });
+          }
+        });
+      });
+    }
+
+    async function refresh() {
+      try {
+        const data = await apiGet('/api/state');
+        render(data);
+      } catch {
+        // ignore transient poll error
+      }
+    }
+
+    document.getElementById('btnClearTop').addEventListener('click', async () => {
+      await apiPost('/api/clear-completed', {});
+      showToast('已一键清理所有已完成任务');
+      setTimeout(refresh, 250);
+    });
+
+    document.getElementById('btnToggleVis').addEventListener('click', async () => {
+      const next = !document.getElementById('chkVisible').checked;
+      await apiPost('/api/settings', { visible: next });
+      showToast(next ? '已显示桌面悬浮窗' : '已隐藏桌面悬浮窗');
+      refresh();
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', async () => {
+      await apiPost('/api/helper', { action: 'restart' });
+      showToast('正在重启 macOS 原生悬浮窗助手…');
+      setTimeout(refresh, 650);
+    });
+
+    ['chkVisible', 'chkPinned', 'chkSound', 'chkAutoDim'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', async () => {
+        await apiPost('/api/settings', {
+          visible: document.getElementById('chkVisible').checked,
+          pinnedExpanded: document.getElementById('chkPinned').checked,
+          soundEnabled: document.getElementById('chkSound').checked,
+          autoDimIdle: document.getElementById('chkAutoDim').checked,
+        });
+        refresh();
+      });
+    });
+
+    document.getElementById('rngOpacity').addEventListener('input', (e) => {
+      document.getElementById('opacityVal').textContent = `${e.target.value}%`;
+    });
+
+    document.getElementById('rngOpacity').addEventListener('change', async (e) => {
+      const opacity = Number(e.target.value) / 100;
+      await apiPost('/api/settings', { opacity });
+      showToast(`毛玻璃浓度已设为 ${e.target.value}%`);
+    });
+
+    document.querySelectorAll('.pos-hotspot').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        await apiPost('/api/settings', { positionPreset: btn.dataset.pos, visible: true });
+        showToast(`已将桌面胶囊移至${POS_NAMES[btn.dataset.pos] || ''}`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#maxCountGroup .seg-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const maxSessionsShown = Number(btn.dataset.max);
+        await apiPost('/api/settings', { maxSessionsShown });
+        showToast(`最大展示会话数已设为 ${maxSessionsShown} 条`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#filterGroup .seg-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll('#filterGroup .seg-btn').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        if (latestPayload) render(latestPayload);
+      });
+    });
+
+    void runNavBridgeLoop();
+    void refresh();
+    setInterval(refresh, 1500);
+  </script>
+</body>
+</html>
