@@ -29,6 +29,10 @@ const DEFAULT_SETTINGS = {
   opacity: 0.94,
   positionPreset: 'top_right',
   maxSessionsShown: 5,
+  styleMode: 'classic',
+  theme: 'cosmos',
+  collapsedStyle: 'e05',
+  hoverMorph: 'm1',
 };
 
 function resolveAppDataDir() {
@@ -76,9 +80,30 @@ function getUiBuildTag() {
   }
 }
 
+const VALID_STYLE_MODES = ['classic', 'aurora', 'frameless'];
+const VALID_THEMES = ['smoked', 'cosmos', 'bamboo', 'sapphire', 'pewter'];
+const VALID_COLLAPSED_STYLES = ['e05', 'island', 'e01', 'e02', 'e03', 'e04', 'e06', 'e07', 'e08', 'e09', 'e10', 'capsule'];
+const VALID_HOVER_MORPHS = ['m1', 'm2', 'm3', 'm4'];
+
 function getSettings() {
   const saved = readJsonSafe(SETTINGS_FILE, {});
-  return { ...DEFAULT_SETTINGS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  const merged = { ...DEFAULT_SETTINGS, ...(saved && typeof saved === 'object' ? saved : {}) };
+  if (merged.theme === 'pine') {
+    merged.theme = 'bamboo';
+  }
+  if (!VALID_THEMES.includes(merged.theme)) {
+    merged.theme = 'cosmos';
+  }
+  if (!VALID_STYLE_MODES.includes(merged.styleMode)) {
+    merged.styleMode = 'classic';
+  }
+  if (!VALID_COLLAPSED_STYLES.includes(merged.collapsedStyle)) {
+    merged.collapsedStyle = 'e05';
+  }
+  if (!VALID_HOVER_MORPHS.includes(merged.hoverMorph)) {
+    merged.hoverMorph = 'm1';
+  }
+  return merged;
 }
 
 function updateSettings(patch) {
@@ -104,6 +129,18 @@ function updateSettings(patch) {
   }
   if (typeof patch.maxSessionsShown === 'number') {
     next.maxSessionsShown = Math.min(8, Math.max(1, Math.round(patch.maxSessionsShown)));
+  }
+  if (typeof patch.styleMode === 'string' && VALID_STYLE_MODES.includes(patch.styleMode)) {
+    next.styleMode = patch.styleMode;
+  }
+  if (typeof patch.theme === 'string' && VALID_THEMES.includes(patch.theme)) {
+    next.theme = patch.theme;
+  }
+  if (typeof patch.collapsedStyle === 'string' && VALID_COLLAPSED_STYLES.includes(patch.collapsedStyle)) {
+    next.collapsedStyle = patch.collapsedStyle;
+  }
+  if (typeof patch.hoverMorph === 'string' && VALID_HOVER_MORPHS.includes(patch.hoverMorph)) {
+    next.hoverMorph = patch.hoverMorph;
   }
   if (typeof patch.clearedCompletedBefore === 'number') {
     next.clearedCompletedBefore = patch.clearedCompletedBefore;

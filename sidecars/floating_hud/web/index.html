@@ -1,34 +1,235 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="smoked">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AGY Floating HUD</title>
   <script src="/preload.js"></script>
   <style>
-    /* Use --hud-* namespace so host preload.js theme variables (like --muted) never clobber text contrast */
-    :root {
+    /* =========================================================================
+       AGY Floating HUD · Liquid Ring 3-Theme System (3D Smoked / 3F Aurora / 3A Glacier)
+       Uses --hud-* namespace so host preload.js variables never override contrast.
+       ========================================================================= */
+
+    /* 3D · 液态烟晶 (Smoked Glass - Default Luminous Dark) */
+    :root,
+    html[data-theme="smoked"] {
       color-scheme: dark;
-      --hud-bg: #0b0e14;
-      --hud-bg-glow: radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.09), transparent 42%),
-                     radial-gradient(circle at 85% 0%, rgba(129, 140, 248, 0.08), transparent 40%);
-      --hud-surface: #121722;
-      --hud-surface-2: #181f2e;
-      --hud-surface-hover: #1f293d;
-      --hud-border: rgba(255, 255, 255, 0.085);
-      --hud-border-strong: rgba(255, 255, 255, 0.16);
-      --hud-text-1: #f8fafc;
-      --hud-text-2: #94a3b8;
-      --hud-text-3: #64748b;
-      --hud-sky: #38bdf8;
-      --hud-indigo: #818cf8;
-      --hud-teal: #2dd4bf;
-      --hud-emerald: #34d399;
-      --hud-amber: #fbbf24;
-      --hud-rose: #fb7185;
-      --hud-radius-lg: 16px;
-      --hud-radius-md: 12px;
-      --hud-radius-sm: 8px;
+      --hud-bg: #242830;
+      --hud-bg-grad: radial-gradient(circle at 18% 0%, rgba(96, 165, 250, 0.12), transparent 52%),
+                     linear-gradient(180deg, #272b34 0%, #20242c 100%);
+      --hud-panel: linear-gradient(155deg, rgba(64, 69, 82, 0.88), rgba(45, 49, 60, 0.90));
+      --hud-panel-border: rgba(255, 255, 255, 0.20);
+      --hud-panel-inset: rgba(255, 255, 255, 0.22);
+      --hud-card: rgba(255, 255, 255, 0.10);
+      --hud-card-hover: rgba(255, 255, 255, 0.15);
+      --hud-card-border: rgba(255, 255, 255, 0.16);
+      --hud-card-done: rgba(255, 255, 255, 0.055);
+      --hud-control-bg: rgba(255, 255, 255, 0.09);
+      --hud-control-hover: rgba(255, 255, 255, 0.15);
+      --hud-divider: rgba(255, 255, 255, 0.12);
+
+      --hud-text-1: #ffffff;
+      --hud-text-2: #dce4f0;
+      --hud-text-3: #b8c4d6;
+
+      --hud-accent: #60a5fa;
+      --hud-accent-fg: #0f172a;
+      --hud-stream: #5eead4;
+      --hud-ring-track: rgba(255, 255, 255, 0.20);
+
+      --hud-wait-bg: rgba(251, 191, 36, 0.18);
+      --hud-wait-border: rgba(252, 211, 77, 0.45);
+      --hud-wait-title: #fde68a;
+      --hud-wait-detail: #fef3c7;
+
+      --hud-done-bg: rgba(52, 211, 153, 0.24);
+      --hud-done-fg: #6ee7b7;
+      --hud-err-fg: #fb7185;
+      --hud-err-bg: rgba(251, 113, 133, 0.20);
+
+      --hud-stage-bg: rgba(22, 25, 32, 0.65);
+      --hud-btn-primary-bg: #ffffff;
+      --hud-btn-primary-fg: #111827;
+      --hud-switch-off: rgba(255, 255, 255, 0.20);
+      --hud-switch-on: #60a5fa;
+      --hud-switch-knob: #ffffff;
+    }
+
+    /* M2 · 深空星云 (Deep Cosmos - Astronomical Indigo Glass) */
+    html[data-theme="cosmos"] {
+      color-scheme: dark;
+      --hud-bg: #151930;
+      --hud-bg-grad: radial-gradient(circle at 20% 0%, rgba(130, 170, 255, 0.16), transparent 54%),
+                     linear-gradient(180deg, #191e3a 0%, #111528 100%);
+      --hud-panel: linear-gradient(155deg, rgba(30, 36, 66, 0.91), rgba(20, 24, 48, 0.93));
+      --hud-panel-border: rgba(199, 210, 254, 0.30);
+      --hud-panel-inset: rgba(224, 231, 255, 0.26);
+      --hud-card: rgba(199, 210, 254, 0.10);
+      --hud-card-hover: rgba(199, 210, 254, 0.16);
+      --hud-card-border: rgba(199, 210, 254, 0.20);
+      --hud-card-done: rgba(255, 255, 255, 0.055);
+      --hud-control-bg: rgba(255, 255, 255, 0.10);
+      --hud-control-hover: rgba(255, 255, 255, 0.16);
+      --hud-divider: rgba(199, 210, 254, 0.14);
+
+      --hud-text-1: #ffffff;
+      --hud-text-2: #e0e7ff;
+      --hud-text-3: #a5b4fc;
+
+      --hud-accent: #82aaff;
+      --hud-accent-fg: #1e1b4b;
+      --hud-stream: #5eead4;
+      --hud-ring-track: rgba(224, 231, 255, 0.20);
+
+      --hud-wait-bg: rgba(251, 191, 36, 0.18);
+      --hud-wait-border: rgba(252, 211, 77, 0.45);
+      --hud-wait-title: #fde68a;
+      --hud-wait-detail: #fef3c7;
+
+      --hud-done-bg: rgba(94, 234, 212, 0.22);
+      --hud-done-fg: #5eead4;
+      --hud-err-fg: #fb7185;
+      --hud-err-bg: rgba(251, 113, 133, 0.20);
+
+      --hud-stage-bg: rgba(14, 17, 34, 0.65);
+      --hud-btn-primary-bg: #eef2ff;
+      --hud-btn-primary-fg: #1e1b4b;
+      --hud-switch-off: rgba(255, 255, 255, 0.20);
+      --hud-switch-on: #82aaff;
+      --hud-switch-knob: #ffffff;
+    }
+
+    /* M8 · 岚山竹影 (Kyoto Bamboo - Serene Charcoal-Moss & Young Bamboo Glass) */
+    html[data-theme="bamboo"] {
+      color-scheme: dark;
+      --hud-bg: #172019;
+      --hud-bg-grad: radial-gradient(circle at 20% 0%, rgba(140, 229, 135, 0.14), transparent 52%),
+                     linear-gradient(180deg, #1b261e 0%, #131b15 100%);
+      --hud-panel: linear-gradient(155deg, rgba(35, 46, 38, 0.91), rgba(24, 33, 27, 0.93));
+      --hud-panel-border: rgba(187, 247, 208, 0.26);
+      --hud-panel-inset: rgba(220, 252, 231, 0.22);
+      --hud-card: rgba(255, 255, 255, 0.09);
+      --hud-card-hover: rgba(255, 255, 255, 0.14);
+      --hud-card-border: rgba(187, 247, 208, 0.18);
+      --hud-card-done: rgba(255, 255, 255, 0.05);
+      --hud-control-bg: rgba(255, 255, 255, 0.10);
+      --hud-control-hover: rgba(255, 255, 255, 0.16);
+      --hud-divider: rgba(187, 247, 208, 0.13);
+
+      --hud-text-1: #f7fee7;
+      --hud-text-2: #dcfce7;
+      --hud-text-3: #a3cfa8;
+
+      --hud-accent: #8ce587;
+      --hud-accent-fg: #142918;
+      --hud-stream: #a7f3a0;
+      --hud-ring-track: rgba(220, 252, 231, 0.20);
+
+      --hud-wait-bg: rgba(251, 191, 36, 0.18);
+      --hud-wait-border: rgba(252, 211, 77, 0.45);
+      --hud-wait-title: #fde68a;
+      --hud-wait-detail: #fef3c7;
+
+      --hud-done-bg: rgba(140, 229, 135, 0.24);
+      --hud-done-fg: #86efac;
+      --hud-err-fg: #fb7185;
+      --hud-err-bg: rgba(251, 113, 133, 0.20);
+
+      --hud-stage-bg: rgba(15, 22, 17, 0.65);
+      --hud-btn-primary-bg: #f0fdf4;
+      --hud-btn-primary-fg: #14532d;
+      --hud-switch-off: rgba(255, 255, 255, 0.20);
+      --hud-switch-on: #8ce587;
+      --hud-switch-knob: #ffffff;
+    }
+
+    /* M10 · 蚀刻雾银 (Etched Pewter - Low-Glare Anodized Silver-Pewter Mist) */
+    html[data-theme="pewter"] {
+      color-scheme: light;
+      --hud-bg: #d4d9e2;
+      --hud-bg-grad: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.55), transparent 54%),
+                     linear-gradient(180deg, #dde2ea 0%, #ccd2dc 100%);
+      --hud-panel: linear-gradient(155deg, rgba(226, 230, 237, 0.92), rgba(208, 214, 224, 0.90));
+      --hud-panel-border: rgba(255, 255, 255, 0.82);
+      --hud-panel-inset: rgba(255, 255, 255, 0.94);
+      --hud-card: rgba(255, 255, 255, 0.58);
+      --hud-card-hover: rgba(255, 255, 255, 0.78);
+      --hud-card-border: rgba(255, 255, 255, 0.82);
+      --hud-card-done: rgba(255, 255, 255, 0.36);
+      --hud-control-bg: rgba(15, 23, 42, 0.08);
+      --hud-control-hover: rgba(15, 23, 42, 0.13);
+      --hud-divider: rgba(15, 23, 42, 0.10);
+
+      --hud-text-1: #111827;
+      --hud-text-2: #374151;
+      --hud-text-3: #525e70;
+
+      --hud-accent: #0f766e;
+      --hud-accent-fg: #ffffff;
+      --hud-stream: #0d9488;
+      --hud-ring-track: rgba(15, 23, 42, 0.15);
+
+      --hud-wait-bg: rgba(255, 250, 235, 0.88);
+      --hud-wait-border: rgba(234, 165, 38, 0.65);
+      --hud-wait-title: #ad510a;
+      --hud-wait-detail: #853f0f;
+
+      --hud-done-bg: rgba(15, 118, 110, 0.16);
+      --hud-done-fg: #0f766e;
+      --hud-err-fg: #dc2626;
+      --hud-err-bg: rgba(220, 38, 38, 0.14);
+
+      --hud-stage-bg: rgba(186, 194, 206, 0.55);
+      --hud-btn-primary-bg: #111827;
+      --hud-btn-primary-fg: #ffffff;
+      --hud-switch-off: rgba(15, 23, 42, 0.20);
+      --hud-switch-on: #0f766e;
+      --hud-switch-knob: #ffffff;
+    }
+
+    /* T2 · 午夜蓝宝石 (Midnight Sapphire - Luminous Ocean Blue Glass) */
+    html[data-theme="sapphire"] {
+      color-scheme: dark;
+      --hud-bg: #17233b;
+      --hud-bg-grad: radial-gradient(circle at 20% 0%, rgba(84, 200, 255, 0.16), transparent 54%),
+                     linear-gradient(180deg, #1b2945 0%, #131d33 100%);
+      --hud-panel: linear-gradient(155deg, rgba(38, 57, 91, 0.90), rgba(25, 39, 68, 0.92));
+      --hud-panel-border: rgba(165, 216, 255, 0.30);
+      --hud-panel-inset: rgba(219, 234, 254, 0.26);
+      --hud-card: rgba(147, 197, 253, 0.13);
+      --hud-card-hover: rgba(147, 197, 253, 0.19);
+      --hud-card-border: rgba(186, 230, 253, 0.22);
+      --hud-card-done: rgba(255, 255, 255, 0.06);
+      --hud-control-bg: rgba(255, 255, 255, 0.11);
+      --hud-control-hover: rgba(255, 255, 255, 0.17);
+      --hud-divider: rgba(186, 230, 253, 0.15);
+
+      --hud-text-1: #ffffff;
+      --hud-text-2: #d8eeff;
+      --hud-text-3: #a5d4f8;
+
+      --hud-accent: #54c8ff;
+      --hud-accent-fg: #082f49;
+      --hud-stream: #7dd3fc;
+      --hud-ring-track: rgba(186, 230, 253, 0.22);
+
+      --hud-wait-bg: rgba(251, 191, 36, 0.18);
+      --hud-wait-border: rgba(252, 211, 77, 0.45);
+      --hud-wait-title: #fde68a;
+      --hud-wait-detail: #fef3c7;
+
+      --hud-done-bg: rgba(56, 189, 248, 0.24);
+      --hud-done-fg: #7dd3fc;
+      --hud-err-fg: #fb7185;
+      --hud-err-bg: rgba(251, 113, 133, 0.20);
+
+      --hud-stage-bg: rgba(12, 21, 39, 0.65);
+      --hud-btn-primary-bg: #f0f9ff;
+      --hud-btn-primary-fg: #0c4a6e;
+      --hud-switch-off: rgba(255, 255, 255, 0.20);
+      --hud-switch-on: #54c8ff;
+      --hud-switch-knob: #ffffff;
     }
 
     * {
@@ -40,12 +241,13 @@
       padding: 0 !important;
       min-height: 100%;
       background-color: var(--hud-bg) !important;
-      background-image: var(--hud-bg-glow) !important;
+      background-image: var(--hud-bg-grad) !important;
       color: var(--hud-text-1) !important;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif !important;
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.45;
       -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     button, input, select {
@@ -53,95 +255,88 @@
     }
 
     .shell {
-      max-width: 1120px;
+      max-width: 1040px;
       margin: 0 auto;
-      padding: 20px 18px 36px;
+      padding: 18px 18px 34px;
     }
 
-    /* --- Hero Topbar --- */
-    .hero {
+    /* --- Compact Top Bar --- */
+    .topbar {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      padding: 16px 18px;
-      background: linear-gradient(180deg, rgba(24, 31, 46, 0.85), rgba(18, 23, 34, 0.92));
-      border: 1px solid var(--hud-border);
-      border-radius: var(--hud-radius-lg);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
-      margin-bottom: 14px;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--hud-divider);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 13px;
+      gap: 10px;
       min-width: 0;
     }
 
-    .brand-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(52, 211, 153, 0.16));
-      border: 1px solid rgba(56, 189, 248, 0.35);
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: var(--hud-control-bg);
+      border: 1px solid var(--hud-panel-border);
       display: flex;
       align-items: center;
       justify-content: center;
+      color: var(--hud-accent);
       flex-shrink: 0;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
-    .brand-copy h1 {
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .brand-title h1 {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       letter-spacing: -0.015em;
       color: var(--hud-text-1);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      white-space: nowrap;
     }
 
-    .brand-copy p {
-      margin: 2px 0 0;
-      font-size: 12px;
-      color: var(--hud-text-2);
-    }
-
-    .hero-right {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-chip {
+    .status-inline {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 11px;
-      border-radius: 999px;
       font-size: 11.5px;
-      font-weight: 600;
-      background: rgba(52, 211, 153, 0.12);
-      color: var(--hud-emerald);
-      border: 1px solid rgba(52, 211, 153, 0.28);
-    }
-
-    .status-chip.offline {
-      background: rgba(148, 163, 184, 0.1);
+      font-weight: 500;
       color: var(--hud-text-2);
-      border-color: var(--hud-border);
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: var(--hud-control-bg);
+      white-space: nowrap;
     }
 
-    .pulse-dot {
-      width: 7px;
-      height: 7px;
+    .status-dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: currentColor;
-      box-shadow: 0 0 8px currentColor;
+      background: var(--hud-text-3);
+      flex-shrink: 0;
+    }
+
+    .status-inline.online .status-dot {
+      background: var(--hud-done-fg);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .btn {
@@ -149,173 +344,737 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      padding: 7px 12px;
+      height: 30px;
+      padding: 0 12px;
       border-radius: 9px;
-      border: 1px solid var(--hud-border);
-      background: var(--hud-surface-2);
+      border: 1px solid var(--hud-panel-border);
+      background: var(--hud-control-bg);
       color: var(--hud-text-1);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.16s ease;
+      transition: all 0.14s ease;
       white-space: nowrap;
     }
 
     .btn:hover {
-      background: var(--hud-surface-hover);
-      border-color: var(--hud-border-strong);
+      background: var(--hud-control-hover);
     }
 
     .btn.primary {
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.20), rgba(129, 140, 248, 0.20));
-      border-color: rgba(56, 189, 248, 0.42);
-      color: #e0f2fe;
+      background: var(--hud-btn-primary-bg);
+      border-color: transparent;
+      color: var(--hud-btn-primary-fg);
+      font-weight: 600;
     }
 
     .btn.primary:hover {
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(129, 140, 248, 0.28));
-      border-color: rgba(56, 189, 248, 0.62);
+      opacity: 0.92;
     }
 
-    .btn.subtle-danger {
-      color: #cbd5e1;
+    .btn.icon-only {
+      width: 30px;
+      padding: 0;
     }
 
-    .btn.subtle-danger:hover {
-      color: #fecdd3;
-      border-color: rgba(251, 113, 133, 0.4);
-      background: rgba(251, 113, 133, 0.1);
-    }
-
-    /* --- KPI Stat Strip --- */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .kpi-card {
-      background: var(--hud-surface);
-      border: 1px solid var(--hud-border);
-      border-radius: var(--hud-radius-md);
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .kpi-meta span {
-      display: block;
+    .btn-ghost {
+      border: none;
+      background: transparent;
+      color: var(--hud-text-3);
       font-size: 11.5px;
-      color: var(--hud-text-2);
       font-weight: 500;
+      padding: 4px 9px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
     }
 
-    .kpi-meta strong {
-      display: block;
-      font-size: 20px;
-      font-weight: 700;
-      margin-top: 2px;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -0.02em;
+    .btn-ghost:hover {
+      background: var(--hud-control-bg);
+      color: var(--hud-text-1);
     }
 
-    .kpi-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      flex-shrink: 0;
+    .btn-ghost:disabled {
+      opacity: 0.35;
+      pointer-events: none;
     }
 
-    .kpi-sky .kpi-meta strong { color: var(--hud-sky); }
-    .kpi-sky .kpi-icon { background: rgba(56, 189, 248, 0.12); color: var(--hud-sky); }
-
-    .kpi-amber .kpi-meta strong { color: var(--hud-amber); }
-    .kpi-amber .kpi-icon { background: rgba(251, 191, 36, 0.12); color: var(--hud-amber); }
-
-    .kpi-emerald .kpi-meta strong { color: var(--hud-emerald); }
-    .kpi-emerald .kpi-icon { background: rgba(52, 211, 153, 0.12); color: var(--hud-emerald); }
-
-    /* --- Adaptive Two-Column Main Grid --- */
+    /* --- Adaptive Grid: Sessions First, Inspector Rail --- */
     .workspace-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 14px;
+      gap: 16px;
       align-items: start;
     }
 
-    @media (min-width: 820px) {
+    @media (min-width: 840px) {
       .workspace-grid {
-        grid-template-columns: 370px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) 316px;
       }
     }
 
     .panel-card {
-      background: var(--hud-surface);
-      border: 1px solid var(--hud-border);
-      border-radius: var(--hud-radius-lg);
-      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      background: var(--hud-panel);
+      border: 1px solid var(--hud-panel-border);
+      border-radius: 16px;
+      padding: 15px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14), inset 0 1px 0 var(--hud-panel-inset);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
     }
 
-    .section-head {
+    /* S6 · Living Mesh Aurora Style Mode on Sessions Panel */
+    .aurora-blob {
+      display: none;
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      filter: blur(38px);
+      opacity: 0.45;
+      pointer-events: none;
+      animation: auroraDrift 6.5s ease-in-out infinite alternate;
+    }
+    .aurora-b1 { top: -80px; left: -40px; background: #3b82f6; }
+    .aurora-b2 { bottom: -90px; right: -30px; background: #10b981; animation-delay: -3.2s; }
+    @keyframes auroraDrift {
+      0%   { transform: translate(0, 0) scale(0.94); }
+      100% { transform: translate(32px, 18px) scale(1.12); }
+    }
+    html[data-style="aurora"] #sessionsPanel {
+      background: #131626;
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+    }
+    html[data-style="aurora"] .aurora-blob {
+      display: block;
+    }
+    html[data-style="aurora"] #sessionsPanel .session-card {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+    }
+    html[data-style="aurora"] #sessionsPanel .session-card.is-active {
+      background: rgba(255, 255, 255, 0.10);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    /* S10 · Frameless Levitating Stack Mode on Sessions Panel */
+    html[data-style="frameless"] #sessionsPanel {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      padding: 0;
+      overflow: visible;
+    }
+    html[data-style="frameless"] #sessionsPanel .session-card {
+      border-radius: 16px;
+      background: var(--hud-panel);
+      border: 1px solid var(--hud-panel-border);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24), inset 0 1px 0 var(--hud-panel-inset);
+      padding: 12px 15px;
+    }
+
+    /* --- Session Stream Header & Filter Tabs --- */
+    .stream-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 13px;
+    }
+
+    .filter-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 10px;
+      background: var(--hud-control-bg);
+    }
+
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: none;
+      background: transparent;
+      color: var(--hud-text-2);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--hud-text-1);
+    }
+
+    .tab-btn.active {
+      background: var(--hud-btn-primary-bg);
+      color: var(--hud-btn-primary-fg);
+      font-weight: 600;
+    }
+
+    .tab-count {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.72;
+    }
+
+    .tab-count.warn {
+      color: var(--hud-wait-title);
+      opacity: 1;
+      font-weight: 700;
+    }
+
+    .tab-btn.active .tab-count.warn {
+      color: inherit;
+    }
+
+    /* --- Session Stream & Cards (1:1 Liquid Ring Style) --- */
+    .session-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 3F Aurora Borderless Divider Mode */
+    html[data-theme="aurora"] .session-stream {
+      gap: 0;
+      margin: 0 -15px -15px;
+      border-top: 1px solid var(--hud-divider);
+    }
+
+    .session-card {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: var(--hud-card-done);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.14s ease, border-color 0.14s ease;
+    }
+
+    .session-card:hover {
+      background: var(--hud-card-hover);
+    }
+
+    .session-card.is-active {
+      background: var(--hud-card);
+      border-color: var(--hud-card-border);
+      padding: 12px 13px;
+    }
+
+    .session-card.phase-waiting {
+      background: var(--hud-wait-bg);
+      border-color: var(--hud-wait-border);
+    }
+
+    html[data-theme="aurora"] .session-card {
+      border-radius: 0;
+      border: none;
+      border-bottom: 1px solid var(--hud-divider);
+      padding: 12px 16px;
+    }
+
+    html[data-theme="aurora"] .session-card:last-child {
+      border-bottom: none;
+      border-radius: 0 0 15px 15px;
+    }
+
+    /* Soft feather-dissolved ambient wash (zero moving lines across text) */
+    .wash-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      pointer-events: none;
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--wash-color, var(--hud-accent)) 12%, transparent) 0%,
+        color-mix(in srgb, var(--wash-color, var(--hud-accent)) 7%, transparent) 68%,
+        transparent 100%
+      );
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes washSweep {
+      0%   { transform: translateX(-110%); }
+      100% { transform: translateX(260%); }
+    }
+
+    /* Leading Status Dot / Glyph */
+    .status-glyph {
+      position: relative;
+      z-index: 1;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sg-star {
+      width: 15px;
+      height: 15px;
+      color: var(--dot-fg, var(--hud-accent));
+      animation: starBreath 2.2s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    .sg-star.is-idle {
+      width: 11px;
+      height: 11px;
+      color: var(--hud-text-3);
+      opacity: 0.55;
+      animation: none;
+    }
+
+    @keyframes starBreath {
+      0%, 100% {
+        opacity: 0.48;
+        transform: scale(0.84) rotate(0deg);
+      }
+      50% {
+        opacity: 1.00;
+        transform: scale(1.14) rotate(18deg);
+        filter: drop-shadow(0 0 4px color-mix(in srgb, var(--dot-fg, var(--hud-accent)) 55%, transparent));
+      }
+    }
+
+    .sg-wait {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(251, 191, 36, 0.24);
+      color: var(--hud-wait-title);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .sg-done {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--hud-done-bg);
+      color: var(--hud-done-fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .sg-err {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--hud-err-bg);
+      color: var(--hud-err-fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* P4 · Stage Milestone Capsules */
+    .stage-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 3.5px;
+      flex-shrink: 0;
+    }
+
+    .stage-pill {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hud-ring-track);
+    }
+
+    .stage-pill.done {
+      width: 11px;
+      background: var(--stage-fg, var(--hud-accent));
+      opacity: 0.90;
+    }
+
+    .stage-pill.active {
+      width: 20px;
+      background: var(--stage-fg, var(--hud-accent));
+      animation: stageBreath 1.6s ease-in-out infinite;
+    }
+
+    .stage-pill.todo {
+      width: 6px;
+    }
+
+    @keyframes stageBreath {
+      0%, 100% { opacity: 0.58; }
+      50%      { opacity: 1.00; }
+    }
+
+    .sc-body {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .sc-row-1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sc-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--hud-text-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-card:not(.is-active) .sc-title {
+      font-weight: 500;
+      color: var(--hud-text-2);
+    }
+
+    .sc-right {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .sc-wait-tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--hud-wait-title);
+    }
+
+    .sc-time {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-variant-numeric: tabular-nums;
+      color: var(--hud-text-3);
+    }
+
+    .sc-row-2 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 2px;
+      min-width: 0;
+    }
+
+    .sc-detail {
+      font-size: 11.5px;
+      color: var(--hud-text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-card.phase-waiting .sc-detail {
+      color: var(--hud-wait-detail);
+    }
+
+    .sc-ws {
+      font-size: 10.5px;
+      color: var(--hud-text-3);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sc-dismiss {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: var(--hud-control-bg);
+      color: var(--hud-text-3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+
+    .sc-dismiss:hover {
+      background: var(--hud-control-hover);
+      color: var(--hud-text-1);
+    }
+
+    .empty-box {
+      padding: 36px 18px;
+      text-align: center;
+      color: var(--hud-text-2);
+      border: 1px dashed var(--hud-divider);
+      border-radius: 12px;
+    }
+
+    html[data-theme="aurora"] .empty-box {
+      margin: 14px;
+    }
+
+    .empty-box strong {
+      display: block;
+      color: var(--hud-text-1);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    /* --- Inspector Rail --- */
+    .inspector-section {
+      margin-bottom: 16px;
+    }
+
+    .inspector-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px;
+    }
+
+    .inspector-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--hud-text-2);
+    }
+
+    .inspector-sub {
+      font-size: 11px;
+      color: var(--hud-text-3);
+    }
+
+    /* 3 Major Style Modes + Compact Palette Swatch Row */
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .style-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 6px;
+      border-radius: 11px;
+      border: 1px solid var(--hud-divider);
+      background: var(--hud-control-bg);
+      color: var(--hud-text-2);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .style-btn:hover {
+      background: var(--hud-control-hover);
+      color: var(--hud-text-1);
+    }
+
+    .style-btn.active {
+      border-color: var(--hud-accent);
+      background: var(--hud-card);
+      color: var(--hud-text-1);
+      box-shadow: 0 0 0 1px var(--hud-accent);
+    }
+
+    .style-preview {
+      width: 28px;
+      height: 15px;
+      border-radius: 5px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+    .sp-classic   { background: linear-gradient(135deg, #2d3448, #1d2233); }
+    .sp-aurora    { background: radial-gradient(circle at 20% 20%, #3b82f6, transparent 70%), radial-gradient(circle at 80% 80%, #10b981, #131626); }
+    .sp-frameless {
+      border: none;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1px 0;
+    }
+    .sp-frameless::before,
+    .sp-frameless::after {
+      content: "";
+      display: block;
+      height: 5.5px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #3b4468, #252c47);
+      border: 1px solid rgba(165, 180, 252, 0.55);
+    }
+
+    .palette-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid var(--hud-divider);
+      transition: opacity 0.18s ease;
     }
 
-    .section-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--hud-text-1);
+    html[data-style="aurora"] .palette-bar {
+      opacity: 0.38;
+      pointer-events: none;
+    }
+
+    .palette-dots {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
     }
 
-    .section-sub {
-      font-size: 11.5px;
+    .theme-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease;
+    }
+
+    .theme-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .theme-btn.active {
+      border-color: var(--hud-text-1);
+    }
+
+    .theme-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+    }
+
+    .swatch-smoked   { background: linear-gradient(135deg, #525968, #2c303a); }
+    .swatch-cosmos   { background: linear-gradient(135deg, #5b78c7, #1d2342); }
+    .swatch-bamboo   { background: linear-gradient(135deg, #68b864, #1e2a21); }
+    .swatch-sapphire { background: linear-gradient(135deg, #38bdf8, #192744); }
+    .swatch-pewter   { background: linear-gradient(135deg, #eef2f7, #bac3d0); border-color: rgba(15, 23, 42, 0.25); }
+
+    /* Collapsed Dual-State Beacon Grid & Hover Physics Selector */
+    .collapsed-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .collapsed-chip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 5.5px 4px;
+      border-radius: 8px;
+      border: 1px solid var(--hud-divider);
+      background: var(--hud-control-bg);
       color: var(--hud-text-2);
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* --- Interactive Mini macOS Screen Position Picker --- */
+    .collapsed-chip:hover {
+      background: var(--hud-control-hover);
+      color: var(--hud-text-1);
+    }
+
+    .collapsed-chip.active {
+      border-color: var(--hud-accent);
+      background: var(--hud-card);
+      color: var(--hud-text-1);
+      box-shadow: 0 0 0 1px var(--hud-accent);
+    }
+
+    .morph-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 7px;
+    }
+
+    .morph-chip {
+      padding: 4.5px 3px;
+      border-radius: 7px;
+      border: 1px solid var(--hud-divider);
+      background: var(--hud-control-bg);
+      color: var(--hud-text-2);
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .morph-chip:hover {
+      background: var(--hud-control-hover);
+      color: var(--hud-text-1);
+    }
+
+    .morph-chip.active {
+      background: var(--hud-btn-primary-bg);
+      border-color: transparent;
+      color: var(--hud-btn-primary-fg);
+    }
+
+    /* Minimal Screen Position Picker */
     .screen-stage {
       position: relative;
       width: 100%;
-      height: 138px;
-      border-radius: 12px;
-      background: linear-gradient(160deg, #162033 0%, #0d1320 100%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      height: 116px;
+      border-radius: 11px;
+      background: var(--hud-stage-bg);
+      border: 1px solid var(--hud-divider);
       overflow: hidden;
-      margin-bottom: 14px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .screen-menubar {
-      height: 16px;
-      background: rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      height: 14px;
+      background: var(--hud-control-bg);
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      font-size: 9px;
-      color: var(--hud-text-3);
+      justify-content: center;
     }
 
     .screen-notch {
-      width: 46px;
-      height: 9px;
-      background: #06080d;
-      border-radius: 0 0 6px 6px;
-      margin: -1px auto 0;
+      width: 36px;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 0 0 5px 5px;
     }
 
     .screen-dock {
@@ -323,145 +1082,92 @@
       bottom: 6px;
       left: 50%;
       transform: translateX(-50%);
-      width: 84px;
-      height: 8px;
+      width: 64px;
+      height: 4px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.09);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--hud-control-hover);
     }
 
     .pos-hotspot {
       position: absolute;
-      padding: 5px 10px;
+      padding: 3.5px 8.5px;
       border-radius: 999px;
-      border: 1px dashed rgba(255, 255, 255, 0.18);
-      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--hud-divider);
+      background: var(--hud-control-bg);
       color: var(--hud-text-2);
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 10.5px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.16s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      transition: all 0.14s ease;
     }
 
     .pos-hotspot:hover {
-      border-style: solid;
-      border-color: rgba(56, 189, 248, 0.55);
+      background: var(--hud-control-hover);
       color: var(--hud-text-1);
-      background: rgba(30, 41, 59, 0.9);
     }
 
     .pos-hotspot.active {
-      border-style: solid;
-      border-color: var(--hud-sky);
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(52, 211, 153, 0.22));
-      color: #f0f9ff;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.28);
+      background: var(--hud-btn-primary-bg);
+      border-color: transparent;
+      color: var(--hud-btn-primary-fg);
+      font-weight: 600;
     }
 
-    .pos-hotspot .mini-orb {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .pos-hotspot[data-pos="top_center"] {
-      top: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .pos-hotspot[data-pos="top_right"] {
-      top: 24px;
-      right: 10px;
-    }
-    .pos-hotspot[data-pos="bottom_left"] {
-      bottom: 22px;
-      left: 10px;
-    }
-    .pos-hotspot[data-pos="bottom_right"] {
-      bottom: 22px;
-      right: 10px;
-    }
+    .pos-hotspot[data-pos="top_center"]   { top: 20px; left: 50%; transform: translateX(-50%); }
+    .pos-hotspot[data-pos="top_right"]    { top: 20px; right: 9px; }
+    .pos-hotspot[data-pos="bottom_left"]  { bottom: 16px; left: 9px; }
+    .pos-hotspot[data-pos="bottom_right"] { bottom: 16px; right: 9px; }
 
     .custom-pos-tag {
       position: absolute;
-      top: 50%;
+      top: 54%;
       left: 50%;
-      transform: translate(-50%, -35%);
-      font-size: 10.5px;
-      color: var(--hud-sky);
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      padding: 2px 9px;
+      transform: translate(-50%, -50%);
+      font-size: 10px;
+      color: var(--hud-text-2);
+      background: var(--hud-control-bg);
+      padding: 2px 8px;
       border-radius: 999px;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.15s ease;
     }
+
     .custom-pos-tag.show {
       opacity: 1;
     }
 
-    /* --- Modern Switch Rows --- */
+    /* Compact Setting Rows */
     .setting-list {
       display: flex;
       flex-direction: column;
-      gap: 2px;
     }
 
-    .setting-item {
+    .setting-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 10px 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      min-height: 36px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--hud-divider);
     }
 
-    .setting-item:last-child {
+    .setting-row:last-child {
       border-bottom: none;
     }
 
-    .setting-copy {
-      min-width: 0;
-    }
-
-    .setting-copy .label-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .setting-label {
       font-size: 12.5px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--hud-text-1);
     }
 
-    .setting-copy .desc {
-      margin-top: 2px;
-      font-size: 11.5px;
-      color: var(--hud-text-2);
-      line-height: 1.38;
-    }
-
-    .value-pill {
-      display: inline-block;
-      padding: 1px 6px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--hud-sky);
-    }
-
-    /* Apple-style Toggle Switch */
     .switch {
       position: relative;
       display: inline-block;
-      width: 40px;
-      height: 22px;
+      width: 34px;
+      height: 19px;
       flex-shrink: 0;
     }
 
@@ -475,124 +1181,35 @@
       position: absolute;
       cursor: pointer;
       inset: 0;
-      background-color: rgba(255, 255, 255, 0.14);
+      background-color: var(--hud-switch-off);
       border-radius: 999px;
-      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: background-color 0.18s ease;
     }
 
     .slider-toggle::before {
       position: absolute;
       content: "";
-      height: 18px;
-      width: 18px;
+      height: 15px;
+      width: 15px;
       left: 2px;
       bottom: 2px;
-      background-color: #ffffff;
+      background-color: var(--hud-switch-knob);
       border-radius: 50%;
-      transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+      transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .switch input:checked + .slider-toggle {
-      background-color: var(--hud-sky);
+      background-color: var(--hud-switch-on);
     }
 
     .switch input:checked + .slider-toggle::before {
-      transform: translateX(18px);
-    }
-
-    /* Range & Segmented Count */
-    .range-wrap {
-      padding: 10px 4px 4px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      margin-top: 2px;
-    }
-
-    .range-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 7px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--hud-text-1);
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 999px;
-      background: linear-gradient(
-        90deg,
-        var(--hud-indigo) 0%,
-        var(--hud-sky) var(--range-fill, 92.5%),
-        rgba(255, 255, 255, 0.12) var(--range-fill, 92.5%)
-      );
-      outline: none;
-      cursor: pointer;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--hud-sky);
-      border: 2px solid #ffffff;
-      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
-      cursor: pointer;
-    }
-
-    .opacity-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .opacity-hint {
-      font-size: 11px;
-      color: var(--hud-text-3);
-    }
-
-    .opacity-presets {
-      display: inline-flex;
-      gap: 4px;
-    }
-
-    .op-chip {
-      border: 1px solid var(--hud-border);
-      background: var(--hud-surface-2);
-      color: var(--hud-text-2);
-      font-size: 10.5px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      padding: 2px 7px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.14s ease;
-    }
-
-    .op-chip:hover {
-      color: var(--hud-text-1);
-      border-color: var(--hud-border-strong);
-    }
-
-    .op-chip.active {
-      background: rgba(56, 189, 248, 0.18);
-      border-color: rgba(56, 189, 248, 0.45);
-      color: #e0f2fe;
+      transform: translateX(15px);
     }
 
     .seg-group {
       display: inline-flex;
-      background: var(--hud-surface-2);
-      border: 1px solid var(--hud-border);
+      background: var(--hud-control-bg);
       border-radius: 8px;
       padding: 2px;
       gap: 2px;
@@ -602,366 +1219,113 @@
       border: none;
       background: transparent;
       color: var(--hud-text-2);
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.14s ease;
-    }
-
-    .seg-btn:hover {
-      color: var(--hud-text-1);
     }
 
     .seg-btn.active {
-      background: rgba(56, 189, 248, 0.2);
-      color: #e0f2fe;
+      background: var(--hud-btn-primary-bg);
+      color: var(--hud-btn-primary-fg);
+      font-weight: 600;
     }
 
-    /* --- Right Column: Session Filter & Stream --- */
-    .filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
+    /* Opacity Slider */
+    .opacity-block {
+      padding-top: 11px;
+      margin-top: 4px;
+      border-top: 1px solid var(--hud-divider);
     }
 
-    .session-stream {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .session-card {
-      position: relative;
-      background: var(--hud-surface-2);
-      border: 1px solid var(--hud-border);
-      border-radius: 13px;
-      padding: 12px 14px;
-      cursor: pointer;
-      transition: all 0.16s ease;
-    }
-
-    .session-card:hover {
-      background: var(--hud-surface-hover);
-      border-color: rgba(56, 189, 248, 0.38);
-      transform: translateY(-1px);
-    }
-
-    .session-card.is-active {
-      background: linear-gradient(180deg, rgba(30, 41, 62, 0.72), rgba(24, 31, 46, 0.9));
-      border-color: rgba(56, 189, 248, 0.30);
-    }
-
-    .session-card.phase-waiting {
-      border-color: rgba(251, 191, 36, 0.42);
-    }
-
-    .sc-row-1 {
+    .opacity-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
-    .sc-title-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .sc-phase-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .sc-title {
-      font-size: 13.5px;
-      font-weight: 700;
-      color: var(--hud-text-1);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .sc-badge {
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 999px;
-      flex-shrink: 0;
-      background: rgba(56, 189, 248, 0.16);
-      color: var(--hud-sky);
-    }
-
-    .sc-badge.running_tool { background: rgba(129, 140, 248, 0.18); color: var(--hud-indigo); }
-    .sc-badge.waiting      { background: rgba(251, 191, 36, 0.18);  color: var(--hud-amber); }
-    .sc-badge.streaming    { background: rgba(45, 212, 191, 0.18);  color: var(--hud-teal); }
-    .sc-badge.completed    { background: rgba(52, 211, 153, 0.15);  color: var(--hud-emerald); }
-    .sc-badge.error,
-    .sc-badge.canceled     { background: rgba(251, 113, 133, 0.16); color: var(--hud-rose); }
-
-    .sc-right-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .sc-time {
+    .opacity-readout {
       font-size: 11.5px;
       font-weight: 600;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       color: var(--hud-text-2);
     }
 
-    .sc-dismiss {
-      width: 22px;
-      height: 22px;
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        var(--hud-accent) 0%,
+        var(--hud-accent) var(--range-fill, 92.5%),
+        var(--hud-control-bg) var(--range-fill, 92.5%)
+      );
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      border: 1px solid transparent;
-      background: rgba(255, 255, 255, 0.06);
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+    }
+
+    .opacity-presets {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .op-chip {
+      border: none;
+      background: var(--hud-control-bg);
       color: var(--hud-text-2);
-      font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 2.5px 7.5px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.14s ease;
     }
 
-    .sc-dismiss:hover {
-      background: rgba(251, 113, 133, 0.18);
-      color: #fecdd3;
-      border-color: rgba(251, 113, 133, 0.35);
-    }
-
-    .sc-row-2 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      font-size: 12px;
-      color: var(--hud-text-2);
-    }
-
-    .ws-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 1px 7px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      background: rgba(147, 197, 253, 0.12);
-      color: #93c5fd;
-      flex-shrink: 0;
-    }
-
-    .model-tag {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      color: var(--hud-text-3);
-      flex-shrink: 0;
-    }
-
-    .prompt-snippet {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--hud-text-2);
-    }
-
-    .sc-row-3 {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 7px;
-      font-size: 12px;
-    }
-
-    .sc-detail {
-      color: #e2e8f0;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .sc-mix {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
-      color: var(--hud-text-2);
-      flex-shrink: 0;
-    }
-
-    /* Obsidian Laser Progress Track in Web Dashboard */
-    .laser-wrap {
-      margin-top: 8px;
-    }
-
-    .laser-track {
-      position: relative;
-      height: 5px;
-      border-radius: 999px;
-      background: rgba(4, 7, 15, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.085);
-    }
-
-    .laser-groove {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .laser-groove::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 68px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, transparent, var(--laser-ghost, rgba(56, 189, 248, 0.22)), transparent);
-      animation: laserGhostSweep 2.15s linear infinite;
-    }
-
-    .laser-track.is-paused .laser-groove::after {
-      display: none;
-    }
-
-    .laser-fill {
-      position: relative;
-      height: 100%;
-      min-width: 14px;
-      border-radius: 999px;
-      background: var(--laser-grad, linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5));
-      box-shadow: 0 0 11px var(--laser-glow, rgba(56, 189, 248, 0.58)),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.28);
-      overflow: hidden;
-      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .laser-fill::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      width: 48%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.44), transparent);
-      animation: laserSheen 1.55s linear infinite;
-    }
-
-    .laser-track.is-paused .laser-fill::before {
-      display: none;
-    }
-
-    .laser-track.is-paused .laser-fill {
-      animation: laserBreath 2.2s ease-in-out infinite;
-    }
-
-    .laser-fill::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: min(18px, 32%);
-      border-radius: 0 999px 999px 0;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62) 65%, rgba(255, 255, 255, 0.96));
-    }
-
-    @keyframes laserSheen {
-      0%   { transform: translateX(-115%); }
-      100% { transform: translateX(225%); }
-    }
-
-    @keyframes laserGhostSweep {
-      0%   { left: 18%; opacity: 0; }
-      20%  { opacity: 1; }
-      85%  { opacity: 0.9; }
-      100% { left: 96%; opacity: 0; }
-    }
-
-    @keyframes laserBreath {
-      0%, 100% { filter: brightness(0.92); }
-      50%      { filter: brightness(1.16); }
-    }
-
-    /* Checklist Discrete Glass Milestones */
-    .checklist-track {
-      margin-top: 8px;
-    }
-
-    .checklist-blocks {
-      display: flex;
-      gap: 4px;
-    }
-
-    .cl-block {
-      flex: 1;
-      height: 5px;
-      border-radius: 999px;
-      background: rgba(4, 7, 15, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.085);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .cl-block.done {
-      border-color: transparent;
-      background: linear-gradient(90deg, var(--hud-sky), var(--hud-emerald));
-      box-shadow: 0 0 8px rgba(52, 211, 153, 0.28);
-    }
-
-    .cl-block.current {
-      border-color: rgba(45, 212, 191, 0.25);
-    }
-
-    .cl-block.current .laser-fill {
-      width: 62%;
-    }
-
-    .empty-box {
-      padding: 36px 18px;
-      text-align: center;
-      color: var(--hud-text-2);
-      border: 1px dashed var(--hud-border);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.015);
-    }
-
-    .empty-box strong {
-      display: block;
+    .op-chip:hover {
+      background: var(--hud-control-hover);
       color: var(--hud-text-1);
-      font-size: 13.5px;
-      margin-bottom: 4px;
+    }
+
+    .op-chip.active {
+      background: var(--hud-btn-primary-bg);
+      color: var(--hud-btn-primary-fg);
     }
 
     .toast {
       position: fixed;
       bottom: 18px;
       right: 18px;
-      background: #1e293b;
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      color: #f8fafc;
+      background: var(--hud-btn-primary-bg);
+      color: var(--hud-btn-primary-fg);
       padding: 8px 14px;
       border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
       opacity: 0;
       transform: translateY(6px);
       pointer-events: none;
-      transition: all 0.18s ease;
+      transition: opacity 0.16s ease, transform 0.16s ease;
       z-index: 99;
     }
 
@@ -973,146 +1337,201 @@
 </head>
 <body>
   <div class="shell">
-    <!-- Top Hero Bar -->
-    <header class="hero">
+    <!-- Compact Top Bar -->
+    <header class="topbar">
       <div class="brand">
-        <div class="brand-logo" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="5" width="20" height="8" rx="4" stroke="#38bdf8" stroke-width="1.8" fill="rgba(56,189,248,0.15)"/>
-            <circle cx="6.5" cy="9" r="2" fill="#34d399"/>
-            <line x1="10.5" y1="9" x2="18" y2="9" stroke="#f8fafc" stroke-width="1.8" stroke-linecap="round"/>
-            <rect x="4" y="16" width="16" height="3.5" rx="1.75" fill="rgba(52,211,153,0.45)"/>
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-opacity="0.28" stroke-width="2.4" />
+            <path d="M12 3.5A8.5 8.5 0 1 1 4.64 16.25" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
           </svg>
         </div>
-        <div class="brand-copy">
-          <h1>AGY Floating HUD</h1>
-          <p>macOS 原生毛玻璃灵动胶囊 · 全屏置顶会话进度与一键跳转中枢</p>
+        <div class="brand-title">
+          <h1>Floating HUD</h1>
+          <div id="helperPill" class="status-inline" title="原生悬浮窗进程状态">
+            <span class="status-dot"></span>
+            <span id="helperText">连接中</span>
+          </div>
         </div>
       </div>
 
-      <div class="hero-right">
-        <div id="helperPill" class="status-chip offline">
-          <span class="pulse-dot"></span>
-          <span id="helperText">正在连接…</span>
-        </div>
-        <button id="btnToggleVis" class="btn primary">显示 / 隐藏浮窗</button>
-        <button id="btnClearTop" class="btn subtle-danger">🗑 清理已完成</button>
-        <button id="btnRestart" class="btn" title="重新启动 macOS 原生悬浮窗进程">↻ 重启助手</button>
+      <div class="topbar-actions">
+        <button id="btnToggleVis" class="btn primary">隐藏浮窗</button>
+        <button id="btnRestart" class="btn icon-only" title="重启 macOS 原生悬浮窗进程" aria-label="重启原生浮窗">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        </button>
       </div>
     </header>
 
-    <!-- 3 KPI Stat Cards -->
-    <section class="kpi-grid">
-      <div class="kpi-card kpi-sky">
-        <div class="kpi-meta">
-          <span>正在运行会话</span>
-          <strong id="kpiActive">0</strong>
-        </div>
-        <div class="kpi-icon">⚡</div>
-      </div>
-
-      <div class="kpi-card kpi-amber">
-        <div class="kpi-meta">
-          <span>等待你的确认</span>
-          <strong id="kpiWaiting">0</strong>
-        </div>
-        <div class="kpi-icon">⏳</div>
-      </div>
-
-      <div class="kpi-card kpi-emerald">
-        <div class="kpi-meta">
-          <span>近期已完成</span>
-          <strong id="kpiCompleted">0</strong>
-        </div>
-        <div class="kpi-icon">✓</div>
-      </div>
-    </section>
-
-    <!-- Main Two-Column Responsive Grid -->
+    <!-- Main Responsive Grid: Live Sessions + Controls Inspector -->
     <div class="workspace-grid">
-      <!-- Left Column: Visual Screen Placement + Preferences -->
-      <section class="panel-card">
-        <div class="section-head">
-          <div class="section-title">🖥 屏幕位置与交互偏好</div>
-          <span id="posLabelText" class="section-sub">右上角</span>
-        </div>
-
-        <!-- Interactive Mini macOS Screen -->
-        <div class="screen-stage" title="点击屏幕四角或顶部居中即可切换桌面胶囊位置">
-          <div class="screen-menubar">
-            <span> Antigravity</span>
-            <div class="screen-notch"></div>
-            <span>100%</span>
+      <section id="sessionsPanel" class="panel-card">
+        <div class="aurora-blob aurora-b1"></div>
+        <div class="aurora-blob aurora-b2"></div>
+        <div class="stream-header" style="position:relative;z-index:1;">
+          <div class="filter-tabs" id="filterGroup" role="tablist">
+            <button class="tab-btn active" data-filter="all" role="tab">
+              <span>全部</span>
+              <span id="cntAll" class="tab-count">0</span>
+            </button>
+            <button class="tab-btn" data-filter="active" role="tab">
+              <span>运行中</span>
+              <span id="cntActive" class="tab-count">0</span>
+            </button>
+            <button class="tab-btn" data-filter="done" role="tab">
+              <span>已完成</span>
+              <span id="cntDone" class="tab-count">0</span>
+            </button>
           </div>
 
-          <button class="pos-hotspot" data-pos="top_center">
-            <span class="mini-orb"></span> 灵动岛下方
-          </button>
-          <button class="pos-hotspot" data-pos="top_right">
-            <span class="mini-orb"></span> 右上角
-          </button>
-          <button class="pos-hotspot" data-pos="bottom_left">
-            <span class="mini-orb"></span> 左下角
-          </button>
-          <button class="pos-hotspot" data-pos="bottom_right">
-            <span class="mini-orb"></span> 右下角
-          </button>
-
-          <div id="customPosBadge" class="custom-pos-tag">✦ 当前为自由拖拽坐标（点击四角可归位）</div>
-          <div class="screen-dock"></div>
+          <button id="btnClearTop" class="btn-ghost" disabled>清理已完成</button>
         </div>
 
-        <!-- Modern Switches -->
-        <div class="setting-list">
-          <div class="setting-item">
-            <div class="setting-copy">
-              <div class="label-row">显示桌面置顶悬浮窗</div>
-              <div class="desc">切换到浏览器、终端或全屏应用时依然实时可见</div>
+        <div id="sessionList" class="session-stream" style="position:relative;z-index:1;">
+          <div class="empty-box">正在同步实时会话状态…</div>
+        </div>
+      </section>
+
+      <aside class="panel-card">
+        <!-- 3 Major Style Modes + 5 Color Swatch Dots -->
+        <div class="inspector-section">
+          <div class="inspector-head">
+            <span class="inspector-title">主题风格</span>
+            <span id="styleLabelText" class="inspector-sub">经典光学</span>
+          </div>
+          <div class="style-grid" id="styleGroup">
+            <button type="button" class="style-btn active" data-style="classic">
+              <span class="style-preview sp-classic"></span>
+              <span>经典光学</span>
+            </button>
+            <button type="button" class="style-btn" data-style="aurora">
+              <span class="style-preview sp-aurora"></span>
+              <span>流体极光</span>
+            </button>
+            <button type="button" class="style-btn" data-style="frameless">
+              <span class="style-preview sp-frameless"></span>
+              <span>无框悬浮</span>
+            </button>
+          </div>
+
+          <div class="palette-bar">
+            <span id="themeLabelText" class="inspector-sub">M2 深空星云</span>
+            <div class="palette-dots" id="themeGroup">
+              <button type="button" class="theme-btn" data-theme="smoked" title="3D 液态烟晶">
+                <span class="theme-swatch swatch-smoked"></span>
+              </button>
+              <button type="button" class="theme-btn active" data-theme="cosmos" title="M2 深空星云">
+                <span class="theme-swatch swatch-cosmos"></span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="bamboo" title="M8 岚山竹影">
+                <span class="theme-swatch swatch-bamboo"></span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="sapphire" title="T2 午夜蓝宝石">
+                <span class="theme-swatch swatch-sapphire"></span>
+              </button>
+              <button type="button" class="theme-btn" data-theme="pewter" title="M10 蚀刻雾银">
+                <span class="theme-swatch swatch-pewter"></span>
+              </button>
             </div>
+          </div>
+        </div>
+
+        <!-- 12 Switchable Collapsed Styles (2 Dynamic Islands Featured First!) + 4 Anti-Jump Hover Modes -->
+        <div class="inspector-section">
+          <div class="inspector-head">
+            <span class="inspector-title">收起态样式</span>
+            <span id="collapsedLabelText" class="inspector-sub">灵动岛 · 刘海原生融黑</span>
+          </div>
+          <div class="collapsed-grid" id="collapsedGroup">
+            <button type="button" class="collapsed-chip active" data-cstyle="e05" title="与 MacBook 摄像头刘海 1:1 纯黑融为一体，悬停向下展开">灵动岛·刘海</button>
+            <button type="button" class="collapsed-chip" data-cstyle="island" title="iPhone 风格顶部居中悬浮纯黑灵动岛胶囊">灵动岛·胶囊</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e01" title="左舱冰蓝活跃 · 右舱翡翠完成">E01 双子舱</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e02" title="Apple Watch 内外双环表盘">E02 双环表</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e03" title="竖向双腔沙漏结晶塔">E03 沙漏塔</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e04" title="内轨彗星旋转 · 外圈翡翠星钉">E04 星系球</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e06" title="1 根光纤灯条对应 1 个会话">E06 微刀片</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e07" title="双键客制化机械宏键盘">E07 双键帽</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e08" title="内扫脉冲声呐 · 外锚进度弧">E08 双声呐</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e09" title="S10 无外框悬浮星珠簇">E09 无框簇</button>
+            <button type="button" class="collapsed-chip" data-cstyle="e10" title="100px 蓝变绿天平能量尺">E10 天平尺</button>
+            <button type="button" class="collapsed-chip" data-cstyle="capsule" title="经典双行文字宽胶囊">宽胶囊</button>
+          </div>
+
+          <div class="palette-bar" style="opacity:1;pointer-events:auto;flex-direction:column;align-items:stretch;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="inspector-title" style="font-size:11.5px;">悬停展开动效</span>
+              <span id="morphLabelText" class="inspector-sub">M1 锚点液态撑开</span>
+            </div>
+            <div class="morph-row" id="morphGroup">
+              <button type="button" class="morph-chip active" data-morph="m1" title="锁死右上/顶中顶点，沿阻尼弹簧无缝放大">M1 液态</button>
+              <button type="button" class="morph-chip" data-morph="m2" title="小信标原地纹丝不动，面板从下方独立浮现">M2 驻留</button>
+              <button type="button" class="morph-chip" data-morph="m3" title="95ms 防路过误触 + 灵动展开">M3 防误触</button>
+              <button type="button" class="morph-chip" data-morph="m4" title="原位光学景深柔焦对焦切换">M4 景深</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen Position Picker -->
+        <div class="inspector-section">
+          <div class="inspector-head">
+            <span class="inspector-title">浮窗位置</span>
+            <span id="posLabelText" class="inspector-sub">右上角</span>
+          </div>
+
+          <div class="screen-stage" title="点击切换桌面胶囊位置">
+            <div class="screen-menubar">
+              <div class="screen-notch"></div>
+            </div>
+
+            <button class="pos-hotspot" data-pos="top_center">顶部居中</button>
+            <button class="pos-hotspot" data-pos="top_right">右上角</button>
+            <button class="pos-hotspot" data-pos="bottom_left">左下角</button>
+            <button class="pos-hotspot" data-pos="bottom_right">右下角</button>
+
+            <div id="customPosBadge" class="custom-pos-tag">自定义坐标</div>
+            <div class="screen-dock"></div>
+          </div>
+        </div>
+
+        <!-- Compact Settings -->
+        <div class="setting-list">
+          <div class="setting-row" title="切换其他应用或全屏窗口时保持置顶可见">
+            <span class="setting-label">显示桌面浮窗</span>
             <label class="switch">
               <input type="checkbox" id="chkVisible" />
               <span class="slider-toggle"></span>
             </label>
           </div>
 
-          <div class="setting-item">
-            <div class="setting-copy">
-              <div class="label-row">固定展开多会话面板</div>
-              <div class="desc">关闭时默认收敛为单行胶囊，鼠标悬停自动展开</div>
-            </div>
+          <div class="setting-row" title="关闭时默认收敛为圆形进度胶囊，悬停自动展开">
+            <span class="setting-label">固定展开面板</span>
             <label class="switch">
               <input type="checkbox" id="chkPinned" />
               <span class="slider-toggle"></span>
             </label>
           </div>
 
-          <div class="setting-item">
-            <div class="setting-copy">
-              <div class="label-row">完成与待确认轻提示音</div>
-              <div class="desc">完成播放 Glass 轻响，遇到提问播放 Tink 提醒</div>
-            </div>
+          <div class="setting-row" title="任务完成或需要你确认时播放轻提示音">
+            <span class="setting-label">提示音提醒</span>
             <label class="switch">
               <input type="checkbox" id="chkSound" />
               <span class="slider-toggle"></span>
             </label>
           </div>
 
-          <div class="setting-item">
-            <div class="setting-copy">
-              <div class="label-row">空闲 3 分钟自动半透明</div>
-              <div class="desc">全部任务完成后自动降低存在感，不挡代码视线</div>
-            </div>
+          <div class="setting-row" title="空闲 3 分钟后自动降低存在感">
+            <span class="setting-label">空闲自动变暗</span>
             <label class="switch">
               <input type="checkbox" id="chkAutoDim" />
               <span class="slider-toggle"></span>
             </label>
           </div>
 
-          <div class="setting-item">
-            <div class="setting-copy">
-              <div class="label-row">最大追踪卡片数</div>
-              <div class="desc">展开悬浮面板时最多同屏列出的会话数量</div>
-            </div>
+          <div class="setting-row" title="展开浮窗时同屏最多展示的会话数">
+            <span class="setting-label">展示条数</span>
             <div class="seg-group" id="maxCountGroup">
               <button class="seg-btn" data-max="3">3</button>
               <button class="seg-btn" data-max="4">4</button>
@@ -1122,45 +1541,19 @@
           </div>
         </div>
 
-        <!-- Opacity Range Slider -->
-        <div class="range-wrap">
-          <div class="range-header">
-            <span>悬浮窗透明度（不透明度调节）</span>
-            <span id="opacityVal" class="value-pill">94%</span>
+        <div class="opacity-block">
+          <div class="opacity-head">
+            <span class="setting-label">不透明度</span>
+            <span id="opacityVal" class="opacity-readout">94%</span>
           </div>
           <input type="range" id="rngOpacity" min="20" max="100" step="1" value="94" />
-          <div class="opacity-footer">
-            <span class="opacity-hint">20% 高透视 ↔ 100% 不透明</span>
-            <div class="opacity-presets" id="opacityPresetGroup">
-              <button type="button" class="op-chip" data-op="35">35%</button>
-              <button type="button" class="op-chip" data-op="55">55%</button>
-              <button type="button" class="op-chip" data-op="75">75%</button>
-              <button type="button" class="op-chip" data-op="94">94%</button>
-              <button type="button" class="op-chip" data-op="100">100%</button>
-            </div>
+          <div class="opacity-presets" id="opacityPresetGroup">
+            <button type="button" class="op-chip" data-op="40">40%</button>
+            <button type="button" class="op-chip" data-op="70">70%</button>
+            <button type="button" class="op-chip" data-op="95">95%</button>
           </div>
         </div>
-      </section>
-
-      <!-- Right Column: Real-Time Session Stream -->
-      <section class="panel-card">
-        <div class="filter-bar">
-          <div>
-            <div class="section-title">📡 实时会话看板</div>
-            <div class="section-sub">点击任意卡片立即跳转到对应会话窗口</div>
-          </div>
-
-          <div class="seg-group" id="filterGroup">
-            <button class="seg-btn active" data-filter="all">全部</button>
-            <button class="seg-btn" data-filter="active">运行中</button>
-            <button class="seg-btn" data-filter="done">已完成</button>
-          </div>
-        </div>
-
-        <div id="sessionList" class="session-stream">
-          <div class="empty-box">正在同步实时会话状态…</div>
-        </div>
-      </section>
+      </aside>
     </div>
   </div>
 
@@ -1191,7 +1584,7 @@
       el.textContent = msg;
       el.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
     }
 
     // --- Instant Click-to-Jump Bridge from macOS Floating HUD ---
@@ -1225,50 +1618,58 @@
     }
 
     const PHASE_META = {
-      thinking:     {
-        label: '思考中',
-        color: '#38bdf8',
-        active: true,
-        grad: 'linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5)',
-        glow: 'rgba(56, 189, 248, 0.56)',
-        ghost: 'rgba(56, 189, 248, 0.22)',
-      },
-      running_tool: {
-        label: '执行中',
-        color: '#818cf8',
-        active: true,
-        grad: 'linear-gradient(90deg, #5b59f2, #8f7aff, #38c2fa)',
-        glow: 'rgba(112, 158, 255, 0.58)',
-        ghost: 'rgba(129, 140, 248, 0.22)',
-      },
-      waiting:      {
-        label: '待确认',
-        color: '#fbbf24',
-        active: true,
-        grad: 'linear-gradient(90deg, #e07a14, #fbbf24, #fde68a)',
-        glow: 'rgba(251, 191, 36, 0.52)',
-        ghost: 'rgba(251, 191, 36, 0.16)',
-      },
-      streaming:    {
-        label: '输出中',
-        color: '#2dd4bf',
-        active: true,
-        grad: 'linear-gradient(90deg, #24b8f5, #29dbd1, #38e0a3)',
-        glow: 'rgba(45, 219, 194, 0.56)',
-        ghost: 'rgba(45, 212, 191, 0.22)',
-      },
-      completed:    { label: '已完成', color: '#34d399', active: false },
-      error:        { label: '异常',   color: '#fb7185', active: false },
-      canceled:     { label: '已停止', color: '#94a3b8', active: false },
-      idle:         { label: '待命',   color: '#64748b', active: false },
+      thinking:     { label: '思考中', active: true },
+      running_tool: { label: '执行中', active: true },
+      waiting:      { label: '待确认', active: true },
+      streaming:    { label: '输出中', active: true },
+      completed:    { label: '已完成', active: false },
+      error:        { label: '异常',   active: false },
+      canceled:     { label: '已停止', active: false },
+      idle:         { label: '待命',   active: false },
+    };
+
+    const STYLE_NAMES = {
+      classic: '经典光学',
+      aurora: 'S6 流体极光',
+      frameless: 'S10 无框悬浮',
+    };
+
+    const THEME_NAMES = {
+      smoked: '3D 液态烟晶',
+      cosmos: 'M2 深空星云',
+      bamboo: 'M8 岚山竹影',
+      sapphire: 'T2 午夜蓝宝石',
+      pewter: 'M10 蚀刻雾银',
+    };
+
+    const COLLAPSED_NAMES = {
+      e05: '灵动岛 · 刘海原生融黑',
+      island: '灵动岛 · 悬浮黑曜胶囊',
+      e01: 'E01 磁吸双子微舱',
+      e02: 'E02 双环复杂方表',
+      e03: 'E03 双腔沙漏晶塔',
+      e04: 'E04 动静双轨星系',
+      e06: 'E06 多槽微刀片架',
+      e07: 'E07 双键客制键盘',
+      e08: 'E08 内扫外锚声呐',
+      e09: 'E09 无框悬浮珠簇',
+      e10: 'E10 双色天平光尺',
+      capsule: '经典双行宽胶囊',
+    };
+
+    const MORPH_NAMES = {
+      m1: 'M1 锚点液态撑开',
+      m2: 'M2 信标驻留·抽屉浮现',
+      m3: 'M3 90ms防误触·灵动展开',
+      m4: 'M4 光学景深聚焦',
     };
 
     const POS_NAMES = {
-      top_right: '右上角（推荐）',
-      top_center: '顶部居中 · 灵动岛位',
+      top_right: '右上角',
+      top_center: '顶部居中',
       bottom_right: '右下角',
       bottom_left: '左下角',
-      custom: '自定义拖拽位置',
+      custom: '自定义位置',
     };
 
     let currentFilter = 'all';
@@ -1283,71 +1684,85 @@
         .replace(/"/g, '&quot;');
     }
 
+    function applyStyleAndTheme(styleMode, themeId) {
+      const validStyle = ['classic', 'aurora', 'frameless'].includes(styleMode) ? styleMode : 'classic';
+      const normalizedTheme = themeId === 'pine' ? 'bamboo' : themeId;
+      const validTheme = ['smoked', 'cosmos', 'bamboo', 'sapphire', 'pewter'].includes(normalizedTheme) ? normalizedTheme : 'cosmos';
+
+      document.documentElement.setAttribute('data-style', validStyle);
+      document.documentElement.setAttribute('data-theme', validStyle === 'aurora' ? 'cosmos' : validTheme);
+      document.getElementById('styleLabelText').textContent = STYLE_NAMES[validStyle] || validStyle;
+      document.getElementById('themeLabelText').textContent = validStyle === 'aurora'
+        ? '极光专属双色'
+        : (THEME_NAMES[validTheme] || validTheme);
+
+      document.querySelectorAll('#styleGroup .style-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.style === validStyle);
+      });
+      document.querySelectorAll('#themeGroup .theme-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.theme === validTheme);
+      });
+    }
+
     function computeProgressPercent(s) {
       if (typeof s.progress === 'number' && Number.isFinite(s.progress) && s.progress > 0) {
-        return Math.min(96, Math.max(10, s.progress));
+        return Math.min(98, Math.max(8, Math.round(s.progress)));
       }
       if (s.taskStats && s.taskStats.total > 0) {
-        return Math.min(100, Math.max(8, Math.round(((s.taskStats.done + 0.5) / s.taskStats.total) * 100)));
+        return Math.min(98, Math.max(8, Math.round(((s.taskStats.done + 0.5) / s.taskStats.total) * 100)));
       }
       if (s.phase === 'streaming') return 92;
       const tools = Number(s.turnToolCount || 0);
       if (tools <= 0) return 24;
-      return Math.min(85, Math.round(26 + 59 * (1 - Math.exp(-tools / 14))));
+      return Math.min(86, Math.round(26 + 59 * (1 - Math.exp(-tools / 14))));
     }
 
-    function renderProgressTrack(s, meta) {
-      if (!meta.active) return '';
-      const isPaused = s.phase === 'waiting';
+    const STAR_PATH = '<path d="M12 2C12.6 7.4 16.6 11.4 22 12C16.6 12.6 12.6 16.6 12 22C11.4 16.6 7.4 12.6 2 12C7.4 11.4 11.4 7.4 12 2Z"/>';
 
-      if (s.taskStats && s.taskStats.total > 0) {
-        const ts = s.taskStats;
-        if (ts.total <= 10) {
-          const activeLimit = ts.done + Math.max(ts.inProgress || 0, 1);
-          const blocks = [];
-          for (let i = 0; i < ts.total; i++) {
-            if (i < ts.done) {
-              blocks.push('<div class="cl-block done"></div>');
-            } else if (i < activeLimit) {
-              blocks.push(`
-                <div class="cl-block current ${isPaused ? 'is-paused' : ''}">
-                  <div class="laser-fill" style="--laser-grad:linear-gradient(90deg,#38bdf8,#2dd4bf);--laser-glow:rgba(45,212,191,0.45);"></div>
-                </div>
-              `);
-            } else {
-              blocks.push('<div class="cl-block"></div>');
-            }
-          }
-          return `
-            <div class="checklist-track">
-              <div class="checklist-blocks">${blocks.join('')}</div>
-            </div>
-          `;
+    function renderStatusGlyph(s, meta) {
+      const p = s.phase || 'completed';
+      if (p === 'waiting') return '<div class="status-glyph"><span class="sg-wait">!</span></div>';
+      if (p === 'completed') return '<div class="status-glyph"><span class="sg-done">✓</span></div>';
+      if (p === 'error') return '<div class="status-glyph"><span class="sg-err">!</span></div>';
+      if (meta.active) {
+        const c = p === 'streaming' ? 'var(--hud-stream)' : 'var(--hud-accent)';
+        return `<div class="status-glyph"><svg class="sg-star" style="--dot-fg:${c};" viewBox="0 0 24 24" fill="currentColor">${STAR_PATH}</svg></div>`;
+      }
+      return `<div class="status-glyph"><svg class="sg-star is-idle" viewBox="0 0 24 24" fill="currentColor">${STAR_PATH}</svg></div>`;
+    }
+
+    function renderStageCapsules(s, meta) {
+      if (!meta.active) return '';
+      const p = s.phase || 'thinking';
+      const fg = p === 'streaming' ? 'var(--hud-stream)' : 'var(--hud-accent)';
+      const pills = [];
+      if (s.taskStats && s.taskStats.total > 0 && s.taskStats.total <= 8) {
+        const activeIdx = Math.min(s.taskStats.total - 1, s.taskStats.done);
+        for (let i = 0; i < s.taskStats.total; i++) {
+          const cls = i < s.taskStats.done ? 'done' : (i === activeIdx ? 'active' : 'todo');
+          pills.push(`<span class="stage-pill ${cls}"></span>`);
+        }
+      } else {
+        const stage = Math.max(1, Math.min(4, Number(s.stage || (p === 'streaming' ? 3 : p === 'thinking' ? 1 : 2))));
+        for (let i = 1; i <= 4; i++) {
+          const cls = i < stage ? 'done' : (i === stage ? 'active' : 'todo');
+          pills.push(`<span class="stage-pill ${cls}"></span>`);
         }
       }
-
-      const pct = computeProgressPercent(s);
-      const grad = s.taskStats
-        ? 'linear-gradient(90deg, #38bdf8, #29dbd6, #34d399)'
-        : (meta.grad || 'linear-gradient(90deg, #6366f1, #38bdf8, #42e6f5)');
-      const glow = s.taskStats ? 'rgba(52, 211, 153, 0.5)' : (meta.glow || 'rgba(56, 189, 248, 0.56)');
-      const ghost = meta.ghost || 'rgba(56, 189, 248, 0.22)';
-
-      return `
-        <div class="laser-wrap">
-          <div class="laser-track ${isPaused ? 'is-paused' : ''}" style="--laser-grad:${grad};--laser-glow:${glow};--laser-ghost:${ghost};">
-            <div class="laser-groove"></div>
-            <div class="laser-fill" style="width:${pct}%;"></div>
-          </div>
-        </div>
-      `;
+      return `<div class="stage-group" style="--stage-fg:${fg};">${pills.join('')}</div>`;
     }
+
+    const DISMISS_SVG = `
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="18" y1="6" x2="6" y2="18" />
+      </svg>
+    `;
 
     function render(data) {
       if (!data?.ok) return;
       latestPayload = data;
 
-      // Auto hot-reload iframe if web/index.html was updated on disk
       if (data.uiBuildTag) {
         if (initialUiBuildTag === null) {
           initialUiBuildTag = data.uiBuildTag;
@@ -1358,19 +1773,32 @@
       }
 
       const { helper, settings, sessions = [] } = data;
+      applyStyleAndTheme(settings.styleMode || 'classic', settings.theme || 'cosmos');
 
-      // Header status chip
+      const cStyle = settings.collapsedStyle || 'e05';
+      document.getElementById('collapsedLabelText').textContent = COLLAPSED_NAMES[cStyle] || cStyle;
+      document.querySelectorAll('#collapsedGroup .collapsed-chip').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.cstyle === cStyle);
+      });
+
+      const hMorph = settings.hoverMorph || 'm1';
+      document.getElementById('morphLabelText').textContent = MORPH_NAMES[hMorph] || hMorph;
+      document.querySelectorAll('#morphGroup .morph-chip').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.morph === hMorph);
+      });
+
       const pill = document.getElementById('helperPill');
       const pillText = document.getElementById('helperText');
       if (helper?.running) {
-        pill.className = 'status-chip';
-        pillText.textContent = `原生浮窗运行中 · PID ${helper.pid}`;
+        pill.className = 'status-inline online';
+        pill.title = `原生悬浮窗运行中 · PID ${helper.pid}`;
+        pillText.textContent = '运行中';
       } else {
-        pill.className = 'status-chip offline';
-        pillText.textContent = helper?.installed ? '浮窗助手未启动' : '未编译原生组件';
+        pill.className = 'status-inline';
+        pill.title = helper?.installed ? '浮窗助手尚未启动' : '未编译原生组件';
+        pillText.textContent = helper?.installed ? '未启动' : '未安装';
       }
 
-      // KPIs
       let activeCnt = 0;
       let waitingCnt = 0;
       let completedCnt = 0;
@@ -1380,17 +1808,19 @@
         else completedCnt++;
         if (s.phase === 'waiting') waitingCnt++;
       }
-      document.getElementById('kpiActive').textContent = String(activeCnt);
-      document.getElementById('kpiWaiting').textContent = String(waitingCnt);
-      document.getElementById('kpiCompleted').textContent = String(completedCnt);
 
-      const visBtn = document.getElementById('btnToggleVis');
-      visBtn.textContent = settings.visible ? '隐藏桌面浮窗' : '显示桌面浮窗';
+      document.getElementById('cntAll').textContent = String(sessions.length);
+      const activeCountEl = document.getElementById('cntActive');
+      activeCountEl.textContent = String(activeCnt);
+      activeCountEl.classList.toggle('warn', waitingCnt > 0);
+      document.getElementById('cntDone').textContent = String(completedCnt);
+
+      document.getElementById('btnToggleVis').textContent = settings.visible ? '隐藏浮窗' : '显示浮窗';
 
       const clearBtn = document.getElementById('btnClearTop');
-      clearBtn.textContent = completedCnt > 0 ? `🗑 清理已完成 (${completedCnt})` : '🗑 清理已完成';
+      clearBtn.disabled = completedCnt === 0;
+      clearBtn.textContent = completedCnt > 0 ? `清理已完成 (${completedCnt})` : '清理已完成';
 
-      // Switches & Sliders
       document.getElementById('chkVisible').checked = Boolean(settings.visible);
       document.getElementById('chkPinned').checked = Boolean(settings.pinnedExpanded);
       document.getElementById('chkSound').checked = Boolean(settings.soundEnabled);
@@ -1401,7 +1831,6 @@
         syncOpacityUi(pct);
       }
 
-      // Screen position hotspots
       const pos = settings.positionPreset || 'top_right';
       document.getElementById('posLabelText').textContent = POS_NAMES[pos] || pos;
       document.querySelectorAll('.pos-hotspot').forEach((btn) => {
@@ -1409,13 +1838,11 @@
       });
       document.getElementById('customPosBadge').classList.toggle('show', pos === 'custom');
 
-      // Max count segmented buttons
       const maxShown = Number(settings.maxSessionsShown || 5);
       document.querySelectorAll('#maxCountGroup .seg-btn').forEach((btn) => {
         btn.classList.toggle('active', Number(btn.dataset.max) === maxShown);
       });
 
-      // Filter sessions
       const filtered = sessions.filter((s) => {
         const isAct = (PHASE_META[s.phase] || PHASE_META.completed).active;
         if (currentFilter === 'active') return isAct;
@@ -1427,8 +1854,8 @@
       if (filtered.length === 0) {
         listEl.innerHTML = `
           <div class="empty-box">
-            <strong>${currentFilter === 'active' ? '当前没有正在运行的会话' : '暂无待展示的会话记录'}</strong>
-            <span>发起新的对话任务后，这里和桌面右上角胶囊会自动实时同步。</span>
+            <strong>${currentFilter === 'active' ? '当前没有运行中的会话' : '暂无会话记录'}</strong>
+            <span>发起新对话后，这里与桌面胶囊将实时同步。</span>
           </div>
         `;
         return;
@@ -1438,60 +1865,63 @@
         .map((s) => {
           const p = s.phase || 'completed';
           const meta = PHASE_META[p] || PHASE_META.completed;
+          const isWaiting = p === 'waiting';
+          const isError = p === 'error';
           const title = s.conversationTitle || s.displayTitle || s.workspaceName || `会话 ${s.shortId}`;
           const cardCls = [
             'session-card',
             meta.active ? 'is-active' : '',
-            p === 'waiting' ? 'phase-waiting' : '',
+            isWaiting ? 'phase-waiting' : '',
           ].filter(Boolean).join(' ');
 
           const statusLine = (s.taskStats && s.taskStats.currentItem && p === 'thinking')
             ? s.taskStats.currentItem
-            : (s.detailText || '');
-
-          let rightTelemetryHtml = '';
-          if (meta.active && s.taskStats && s.taskStats.total > 0) {
-            rightTelemetryHtml = `<span class="sc-mix" style="color:#34d399;font-weight:600;">清单 ${s.taskStats.done}/${s.taskStats.total} · ${s.taskStats.percent}%</span>`;
-          } else if (Number(s.turnToolCount || 0) > 0) {
-            const mixSuffix = s.turnToolMix ? ` <span style="color:var(--hud-text-3);">· ${escapeHtml(s.turnToolMix)}</span>` : '';
-            rightTelemetryHtml = `<span class="sc-mix"><span style="color:${meta.color};font-weight:600;">${Number(s.turnToolCount)} 步</span>${mixSuffix}</span>`;
-          }
-
-          const row3Html = (meta.active || p === 'error')
-            ? `
-              <div class="sc-row-3">
-                <span class="sc-detail">${escapeHtml(statusLine)}</span>
-                ${rightTelemetryHtml}
-              </div>
-            `
-            : '';
+            : (s.detailText || meta.label);
 
           const dismissBtnHtml = !meta.active
-            ? `<button class="sc-dismiss" data-dismiss="${escapeHtml(s.id)}" title="从列表清理此已完成任务">✕</button>`
+            ? `<button class="sc-dismiss" data-dismiss="${escapeHtml(s.id)}" title="移除此记录">${DISMISS_SVG}</button>`
             : '';
+
+          if (meta.active || isError) {
+            const pct = computeProgressPercent(s);
+            const washColor = isWaiting ? 'var(--hud-wait-title)' : (p === 'streaming' ? 'var(--hud-stream)' : 'var(--hud-accent)');
+            const washHtml = meta.active
+              ? `<div class="wash-fill" style="width:${pct}%;--wash-color:${washColor};"></div>`
+              : '';
+            const rightTopHtml = isWaiting
+              ? `<span class="sc-wait-tag">待确认</span>`
+              : renderStageCapsules(s, meta);
+
+            return `
+              <div class="${cardCls}" data-cid="${escapeHtml(s.id)}">
+                ${washHtml}
+                ${renderStatusGlyph(s, meta)}
+                <div class="sc-body">
+                  <div class="sc-row-1">
+                    <span class="sc-title">${escapeHtml(title)}</span>
+                    <div class="sc-right">${rightTopHtml}</div>
+                  </div>
+                  <div class="sc-row-2">
+                    <span class="sc-detail">${escapeHtml(statusLine)}</span>
+                    <span class="sc-time">${escapeHtml(s.timeBadge || '')}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
 
           return `
             <div class="${cardCls}" data-cid="${escapeHtml(s.id)}">
-              <div class="sc-row-1">
-                <div class="sc-title-group">
-                  <span class="sc-phase-dot" style="background:${meta.color};box-shadow:0 0 8px ${meta.color};"></span>
+              ${renderStatusGlyph(s, meta)}
+              <div class="sc-body">
+                <div class="sc-row-1">
                   <span class="sc-title">${escapeHtml(title)}</span>
-                  <span class="sc-badge ${escapeHtml(p)}">${meta.label}</span>
-                </div>
-                <div class="sc-right-meta">
-                  <span class="sc-time">${escapeHtml(s.timeBadge || '')}</span>
-                  ${dismissBtnHtml}
+                  <div class="sc-right">
+                    <span class="sc-time">${escapeHtml(s.timeBadge || '')}</span>
+                    ${dismissBtnHtml}
+                  </div>
                 </div>
               </div>
-
-              <div class="sc-row-2">
-                ${s.workspaceName ? `<span class="ws-pill">📁 ${escapeHtml(s.workspaceName)}</span>` : ''}
-                ${s.modelShortName ? `<span class="model-tag">${escapeHtml(s.modelShortName)}</span>` : ''}
-                <span class="prompt-snippet">${escapeHtml(s.promptTitle || (!meta.active && s.turnToolCount ? `本轮执行 ${s.turnToolCount} 步` : ''))}</span>
-              </div>
-
-              ${row3Html}
-              ${renderProgressTrack(s, meta)}
             </div>
           `;
         })
@@ -1504,8 +1934,8 @@
             e.stopPropagation();
             const cid = dismissBtn.dataset.dismiss;
             apiPost('/api/dismiss-session', { conversationId: cid }).then(() => {
-              showToast('已移除该条完成记录');
-              setTimeout(refresh, 250);
+              showToast('已移除该条记录');
+              setTimeout(refresh, 220);
             });
             return;
           }
@@ -1526,22 +1956,70 @@
       }
     }
 
+    document.querySelectorAll('#styleGroup .style-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const styleMode = btn.dataset.style;
+        const currTheme = latestPayload?.settings?.theme || 'cosmos';
+        applyStyleAndTheme(styleMode, currTheme);
+        await apiPost('/api/settings', { styleMode });
+        showToast(`已切换至 ${STYLE_NAMES[styleMode] || styleMode}`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#themeGroup .theme-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const theme = btn.dataset.theme;
+        const currStyle = latestPayload?.settings?.styleMode || 'classic';
+        applyStyleAndTheme(currStyle, theme);
+        await apiPost('/api/settings', { theme });
+        showToast(`已切换色彩至 ${THEME_NAMES[theme] || theme}`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#collapsedGroup .collapsed-chip').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const collapsedStyle = btn.dataset.cstyle;
+        document.getElementById('collapsedLabelText').textContent = COLLAPSED_NAMES[collapsedStyle] || collapsedStyle;
+        document.querySelectorAll('#collapsedGroup .collapsed-chip').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        await apiPost('/api/settings', { collapsedStyle, pinnedExpanded: false, visible: true });
+        showToast(`收起态已切换至 ${COLLAPSED_NAMES[collapsedStyle] || collapsedStyle}`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#morphGroup .morph-chip').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const hoverMorph = btn.dataset.morph;
+        document.getElementById('morphLabelText').textContent = MORPH_NAMES[hoverMorph] || hoverMorph;
+        document.querySelectorAll('#morphGroup .morph-chip').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        await apiPost('/api/settings', { hoverMorph });
+        showToast(`悬停动效已切换至 ${MORPH_NAMES[hoverMorph] || hoverMorph}`);
+        refresh();
+      });
+    });
+
     document.getElementById('btnClearTop').addEventListener('click', async () => {
       await apiPost('/api/clear-completed', {});
-      showToast('已一键清理所有已完成任务');
-      setTimeout(refresh, 250);
+      showToast('已清理所有已完成记录');
+      setTimeout(refresh, 220);
     });
 
     document.getElementById('btnToggleVis').addEventListener('click', async () => {
       const next = !document.getElementById('chkVisible').checked;
       await apiPost('/api/settings', { visible: next });
-      showToast(next ? '已显示桌面悬浮窗' : '已隐藏桌面悬浮窗');
+      showToast(next ? '已显示桌面浮窗' : '已隐藏桌面浮窗');
       refresh();
     });
 
     document.getElementById('btnRestart').addEventListener('click', async () => {
       await apiPost('/api/helper', { action: 'restart' });
-      showToast('正在重启 macOS 原生悬浮窗助手…');
+      showToast('正在重启原生悬浮窗…');
       setTimeout(refresh, 650);
     });
 
@@ -1598,9 +2076,8 @@
       const pct = Number(e.target.value);
       opacityDragLockUntil = Date.now() + 1200;
       syncOpacityUi(pct);
-      const opacity = pct / 100;
-      await apiPost('/api/settings', { opacity });
-      showToast(`悬浮窗不透明度已设为 ${pct}%`);
+      await apiPost('/api/settings', { opacity: pct / 100 });
+      showToast(`不透明度已设为 ${pct}%`);
     });
 
     document.querySelectorAll('#opacityPresetGroup .op-chip').forEach((chip) => {
@@ -1609,7 +2086,7 @@
         opacityDragLockUntil = Date.now() + 1200;
         syncOpacityUi(pct);
         await apiPost('/api/settings', { opacity: pct / 100 });
-        showToast(`悬浮窗不透明度已设为 ${pct}%`);
+        showToast(`不透明度已设为 ${pct}%`);
         refresh();
       });
     });
@@ -1617,7 +2094,7 @@
     document.querySelectorAll('.pos-hotspot').forEach((btn) => {
       btn.addEventListener('click', async () => {
         await apiPost('/api/settings', { positionPreset: btn.dataset.pos, visible: true });
-        showToast(`已将桌面胶囊移至${POS_NAMES[btn.dataset.pos] || ''}`);
+        showToast(`已移至${POS_NAMES[btn.dataset.pos] || ''}`);
         refresh();
       });
     });
@@ -1626,15 +2103,15 @@
       btn.addEventListener('click', async () => {
         const maxSessionsShown = Number(btn.dataset.max);
         await apiPost('/api/settings', { maxSessionsShown });
-        showToast(`最大展示会话数已设为 ${maxSessionsShown} 条`);
+        showToast(`最多展示 ${maxSessionsShown} 条会话`);
         refresh();
       });
     });
 
-    document.querySelectorAll('#filterGroup .seg-btn').forEach((btn) => {
+    document.querySelectorAll('#filterGroup .tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         currentFilter = btn.dataset.filter;
-        document.querySelectorAll('#filterGroup .seg-btn').forEach((b) => {
+        document.querySelectorAll('#filterGroup .tab-btn').forEach((b) => {
           b.classList.toggle('active', b === btn);
         });
         if (latestPayload) render(latestPayload);

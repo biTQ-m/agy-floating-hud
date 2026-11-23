@@ -41,21 +41,21 @@ enum SessionPhase: String, Codable, Equatable {
     var accentColor: Color {
         switch self {
         case .thinking:
-            return Color(red: 0.35, green: 0.68, blue: 1.0)   // Sky Blue
+            return Color(red: 0.38, green: 0.76, blue: 1.0)    // Apple System Sky
         case .runningTool:
-            return Color(red: 0.56, green: 0.48, blue: 1.0)   // Electric Indigo
+            return Color(red: 0.50, green: 0.64, blue: 1.0)    // Crisp Periwinkle Blue
         case .waiting:
-            return Color(red: 0.98, green: 0.75, blue: 0.18)  // Warm Amber
+            return Color(red: 1.00, green: 0.80, blue: 0.30)   // Apple System Amber
         case .streaming:
-            return Color(red: 0.16, green: 0.84, blue: 0.78)  // Cyan-Teal
+            return Color(red: 0.34, green: 0.86, blue: 0.78)   // Apple System Mint
         case .completed:
-            return Color(red: 0.20, green: 0.84, blue: 0.60)  // Emerald
+            return Color(red: 0.32, green: 0.84, blue: 0.54)   // Apple System Green
         case .error:
-            return Color(red: 0.97, green: 0.36, blue: 0.40)  // Coral Red
+            return Color(red: 1.00, green: 0.42, blue: 0.45)   // Apple System Coral Red
         case .canceled:
-            return Color(red: 0.62, green: 0.66, blue: 0.73)  // Slate
+            return Color(white: 0.66)                          // Clear Silver
         case .idle:
-            return Color(red: 0.50, green: 0.55, blue: 0.63)  // Muted Gray
+            return Color(white: 0.62)                          // Neutral Silver
         }
     }
 
@@ -76,59 +76,44 @@ enum SessionPhase: String, Codable, Equatable {
         switch self {
         case .thinking:
             return [
-                Color(red: 0.39, green: 0.40, blue: 0.96),
-                Color(red: 0.22, green: 0.74, blue: 0.98),
-                Color(red: 0.26, green: 0.90, blue: 0.95),
+                Color(red: 0.30, green: 0.66, blue: 0.98),
+                Color(red: 0.52, green: 0.84, blue: 1.00),
             ]
         case .runningTool:
             return [
-                Color(red: 0.36, green: 0.35, blue: 0.95),
-                Color(red: 0.56, green: 0.48, blue: 1.00),
-                Color(red: 0.22, green: 0.76, blue: 0.98),
+                Color(red: 0.42, green: 0.56, blue: 0.98),
+                Color(red: 0.62, green: 0.74, blue: 1.00),
             ]
         case .waiting:
             return [
-                Color(red: 0.88, green: 0.48, blue: 0.08),
-                Color(red: 0.98, green: 0.75, blue: 0.18),
-                Color(red: 1.00, green: 0.91, blue: 0.54),
+                Color(red: 0.94, green: 0.68, blue: 0.20),
+                Color(red: 1.00, green: 0.84, blue: 0.40),
             ]
         case .streaming:
             return [
-                Color(red: 0.14, green: 0.72, blue: 0.96),
-                Color(red: 0.16, green: 0.86, blue: 0.82),
-                Color(red: 0.22, green: 0.88, blue: 0.64),
+                Color(red: 0.26, green: 0.78, blue: 0.72),
+                Color(red: 0.46, green: 0.92, blue: 0.82),
             ]
         case .completed:
             return [
-                Color(red: 0.18, green: 0.76, blue: 0.92),
-                Color(red: 0.20, green: 0.85, blue: 0.62),
+                Color(red: 0.28, green: 0.78, blue: 0.52),
+                Color(red: 0.42, green: 0.88, blue: 0.60),
             ]
         case .error:
             return [
-                Color(red: 0.92, green: 0.26, blue: 0.34),
-                Color(red: 0.98, green: 0.46, blue: 0.48),
+                Color(red: 0.94, green: 0.36, blue: 0.40),
+                Color(red: 1.00, green: 0.52, blue: 0.54),
             ]
         case .canceled, .idle:
             return [
-                Color(red: 0.46, green: 0.52, blue: 0.62),
-                Color(red: 0.62, green: 0.66, blue: 0.74),
+                Color(white: 0.56),
+                Color(white: 0.72),
             ]
         }
     }
 
     var progressGlowColor: Color {
-        switch self {
-        case .thinking:
-            return Color(red: 0.22, green: 0.74, blue: 0.98)
-        case .runningTool:
-            return Color(red: 0.44, green: 0.62, blue: 1.00)
-        case .waiting:
-            return Color(red: 0.98, green: 0.75, blue: 0.18)
-        case .streaming:
-            return Color(red: 0.18, green: 0.86, blue: 0.76)
-        default:
-            return accentColor
-        }
+        accentColor
     }
 }
 
@@ -247,6 +232,407 @@ struct SessionSnapshot: Identifiable, Equatable {
     }
 }
 
+enum HudStyleMode: String, CaseIterable, Equatable {
+    case classic    // 目前的光学毛玻璃浮窗
+    case aurora     // S6 · 流体极光呼吸底 (Living Mesh Aurora)
+    case frameless  // S10 · 去外框独立悬浮胶囊堆叠 (Frameless Levitating Stack)
+
+    var displayName: String {
+        switch self {
+        case .classic: return "经典光学毛玻璃"
+        case .aurora: return "S6 流体极光呼吸"
+        case .frameless: return "S10 去外框悬浮堆叠"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .classic: return "经典"
+        case .aurora: return "极光"
+        case .frameless: return "无框"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .classic: return "square.on.square"
+        case .aurora: return "sparkles"
+        case .frameless: return "rectangle.stack"
+        }
+    }
+
+    var nextStyle: HudStyleMode {
+        switch self {
+        case .classic: return .aurora
+        case .aurora: return .frameless
+        case .frameless: return .classic
+        }
+    }
+}
+
+enum HudCollapsedStyle: String, CaseIterable, Equatable {
+    case e05      // 灵动岛 · 刘海原生融黑 (MacBook Hardware Notch Dynamic Island)
+    case island   // 灵动岛 · 悬浮黑曜胶囊 (iPhone Dynamic Island Floating Pill)
+    case e01      // E01 · 磁吸双子微舱 (Twin Telemetry Pods)
+    case e02      // E02 · 双环复杂功能方表 (Dual-Ring Watch Tile)
+    case e03      // E03 · 双腔沙漏结晶塔 (Hourglass Crystal Totem)
+    case e04      // E04 · 动静双轨星系球 (Dual-Orbit Galaxy Orb)
+    case e06      // E06 · 多槽服务器微刀片 (Micro Blade Rack)
+    case e07      // E07 · 双键客制化宏键盘 (2-Key Macro Pad)
+    case e08      // E08 · 内扫外锚双区声呐 (Bezel-Arc Sonar Scope)
+    case e09      // E09 · S10 无框悬浮星珠簇 (Frameless Bead Cluster)
+    case e10      // E10 · 双色天平能量尺 (Segmented Ledger Bar)
+    case capsule  // 经典双行宽胶囊 (Classic Wide Capsule)
+
+    var displayName: String {
+        switch self {
+        case .e05: return "灵动岛 · 刘海原生融黑"
+        case .island: return "灵动岛 · 悬浮黑曜胶囊"
+        case .e01: return "E01 磁吸双子微舱"
+        case .e02: return "E02 双环复杂方表"
+        case .e03: return "E03 双腔沙漏晶塔"
+        case .e04: return "E04 动静双轨星系"
+        case .e06: return "E06 多槽微刀片架"
+        case .e07: return "E07 双键客制键盘"
+        case .e08: return "E08 内扫外锚声呐"
+        case .e09: return "E09 无框悬浮珠簇"
+        case .e10: return "E10 双色天平光尺"
+        case .capsule: return "经典双行宽胶囊"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .e05: return "刘海灵动岛"
+        case .island: return "悬浮灵动岛"
+        case .e01: return "E01 双子"
+        case .e02: return "E02 方表"
+        case .e03: return "E03 沙漏"
+        case .e04: return "E04 星系"
+        case .e06: return "E06 刀片"
+        case .e07: return "E07 双键"
+        case .e08: return "E08 声呐"
+        case .e09: return "E09 珠簇"
+        case .e10: return "E10 光尺"
+        case .capsule: return "宽胶囊"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .e05: return "menubar.dock.rectangle"
+        case .island: return "capsule.portrait.bottomhalf.filled"
+        case .e01: return "capsule.lefthalf.filled"
+        case .e02: return "applewatch.watchface"
+        case .e03: return "hourglass"
+        case .e04: return "atom"
+        case .e06: return "chart.bar.xaxis"
+        case .e07: return "keyboard"
+        case .e08: return "dot.radiowaves.left.and.right"
+        case .e09: return "circles.hexagongrid"
+        case .e10: return "slider.horizontal.below.rectangle"
+        case .capsule: return "rectangle.roundedtop"
+        }
+    }
+
+    var nextStyle: HudCollapsedStyle {
+        let all = Self.allCases
+        guard let idx = all.firstIndex(of: self) else { return .e05 }
+        return all[(idx + 1) % all.count]
+    }
+}
+
+enum HudHoverMorph: String, CaseIterable, Equatable {
+    case m1  // M1 · 右上锚点液态撑开 (Corner-Locked Liquid Morph)
+    case m2  // M2 · 信标驻留·抽屉浮现 (Beacon Stay + Detached Drawer)
+    case m3  // M3 · 90ms防误触·灵动展开 (90ms Intent Guard + Crisp Unfold)
+    case m4  // M4 · 光学景深聚焦切换 (Optical Depth Blur Focus)
+
+    var displayName: String {
+        switch self {
+        case .m1: return "M1 锚点液态撑开"
+        case .m2: return "M2 信标驻留·抽屉浮现"
+        case .m3: return "M3 90ms防误触·灵动展开"
+        case .m4: return "M4 光学景深聚焦"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .m1: return "M1 液态"
+        case .m2: return "M2 驻留"
+        case .m3: return "M3 防误触"
+        case .m4: return "M4 景深"
+        }
+    }
+
+    var expandAnimation: Animation {
+        switch self {
+        case .m1: return .spring(response: 0.30, dampingFraction: 0.84, blendDuration: 0.08)
+        case .m2: return .spring(response: 0.28, dampingFraction: 0.86, blendDuration: 0.06)
+        case .m3: return .spring(response: 0.27, dampingFraction: 0.85, blendDuration: 0.06)
+        case .m4: return .easeOut(duration: 0.24)
+        }
+    }
+
+    var collapseAnimation: Animation {
+        switch self {
+        case .m1, .m2, .m3: return .spring(response: 0.24, dampingFraction: 0.88, blendDuration: 0.06)
+        case .m4: return .easeInOut(duration: 0.20)
+        }
+    }
+}
+
+enum HudTheme: String, CaseIterable, Equatable {
+    case smoked    // 3D · 液态烟晶 (VisionOS Luminous Dark)
+    case cosmos    // M2 · 深空星云 (Deep Cosmos Indigo Glass)
+    case bamboo    // M8 · 岚山竹影 (Kyoto Bamboo Charcoal-Green Glass)
+    case sapphire  // T2 · 午夜蓝宝石 (Midnight Sapphire Frosted Glass)
+    case pewter    // M10 · 蚀刻雾银 (Etched Pewter Low-Glare Silver Mist)
+
+    var displayName: String {
+        switch self {
+        case .smoked: return "3D 液态烟晶"
+        case .cosmos: return "M2 深空星云"
+        case .bamboo: return "M8 岚山竹影"
+        case .sapphire: return "T2 午夜蓝宝石"
+        case .pewter: return "M10 蚀刻雾银"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .smoked: return "烟晶"
+        case .cosmos: return "星云"
+        case .bamboo: return "竹影"
+        case .sapphire: return "蓝宝"
+        case .pewter: return "雾银"
+        }
+    }
+
+    var nextTheme: HudTheme {
+        switch self {
+        case .smoked: return .cosmos
+        case .cosmos: return .bamboo
+        case .bamboo: return .sapphire
+        case .sapphire: return .pewter
+        case .pewter: return .smoked
+        }
+    }
+
+    var isLight: Bool {
+        self == .pewter
+    }
+
+    var usesBorderlessDividers: Bool {
+        false
+    }
+
+    var swatchColor: Color {
+        switch self {
+        case .smoked: return Color(red: 0.38, green: 0.65, blue: 0.98)   // #60A5FA
+        case .cosmos: return Color(red: 0.51, green: 0.67, blue: 1.00)   // #82AAFF
+        case .bamboo: return Color(red: 0.55, green: 0.90, blue: 0.53)   // #8CE587
+        case .sapphire: return Color(red: 0.33, green: 0.78, blue: 1.00) // #54C8FF
+        case .pewter: return Color(red: 0.06, green: 0.46, blue: 0.43)   // #0F766E
+        }
+    }
+
+    var glassGradientColors: [Color] {
+        switch self {
+        case .smoked:
+            return [
+                Color(red: 0.26, green: 0.28, blue: 0.33),
+                Color(red: 0.17, green: 0.19, blue: 0.23),
+            ]
+        case .cosmos:
+            return [
+                Color(red: 0.12, green: 0.14, blue: 0.26),
+                Color(red: 0.08, green: 0.10, blue: 0.19),
+            ]
+        case .bamboo:
+            return [
+                Color(red: 0.14, green: 0.18, blue: 0.15),
+                Color(red: 0.09, green: 0.13, blue: 0.11),
+            ]
+        case .sapphire:
+            return [
+                Color(red: 0.15, green: 0.22, blue: 0.36),
+                Color(red: 0.10, green: 0.15, blue: 0.27),
+            ]
+        case .pewter:
+            return [
+                Color(red: 0.88, green: 0.89, blue: 0.92),
+                Color(red: 0.81, green: 0.83, blue: 0.87),
+            ]
+        }
+    }
+
+    var outerBorderColors: [Color] {
+        switch self {
+        case .smoked:
+            return [Color.white.opacity(0.38), Color.white.opacity(0.16)]
+        case .cosmos:
+            return [Color(red: 0.78, green: 0.82, blue: 1.00).opacity(0.38), Color(red: 0.78, green: 0.82, blue: 1.00).opacity(0.15)]
+        case .bamboo:
+            return [Color(red: 0.73, green: 0.97, blue: 0.82).opacity(0.34), Color(red: 0.73, green: 0.97, blue: 0.82).opacity(0.14)]
+        case .sapphire:
+            return [Color(red: 0.65, green: 0.85, blue: 1.00).opacity(0.42), Color(red: 0.65, green: 0.85, blue: 1.00).opacity(0.18)]
+        case .pewter:
+            return [Color.white.opacity(0.88), Color.white.opacity(0.52)]
+        }
+    }
+
+    var primaryText: Color {
+        switch self {
+        case .pewter: return Color(red: 0.07, green: 0.09, blue: 0.15)
+        default: return .white
+        }
+    }
+
+    var secondaryText: Color {
+        switch self {
+        case .smoked: return Color(red: 0.86, green: 0.89, blue: 0.94)
+        case .cosmos: return Color(red: 0.88, green: 0.91, blue: 1.00)
+        case .bamboo: return Color(red: 0.86, green: 0.99, blue: 0.91)
+        case .sapphire: return Color(red: 0.85, green: 0.93, blue: 1.00)
+        case .pewter: return Color(red: 0.22, green: 0.25, blue: 0.32)
+        }
+    }
+
+    var tertiaryText: Color {
+        switch self {
+        case .smoked: return Color(red: 0.78, green: 0.83, blue: 0.90).opacity(0.88)
+        case .cosmos: return Color(red: 0.65, green: 0.71, blue: 0.99)
+        case .bamboo: return Color(red: 0.64, green: 0.81, blue: 0.66)
+        case .sapphire: return Color(red: 0.65, green: 0.83, blue: 0.97)
+        case .pewter: return Color(red: 0.32, green: 0.37, blue: 0.44)
+        }
+    }
+
+    var dividerColor: Color {
+        isLight ? Color(red: 0.07, green: 0.09, blue: 0.15).opacity(0.10) : Color.white.opacity(0.13)
+    }
+
+    var controlBg: Color {
+        isLight ? Color(red: 0.06, green: 0.09, blue: 0.16).opacity(0.08) : Color.white.opacity(0.11)
+    }
+
+    var controlActiveBg: Color {
+        isLight ? Color(red: 0.06, green: 0.46, blue: 0.43).opacity(0.16) : Color.white.opacity(0.22)
+    }
+
+    var activeCardFill: Color {
+        switch self {
+        case .smoked: return Color.white.opacity(0.12)
+        case .cosmos: return Color(red: 0.78, green: 0.82, blue: 1.00).opacity(0.10)
+        case .bamboo: return Color.white.opacity(0.09)
+        case .sapphire: return Color(red: 0.58, green: 0.77, blue: 0.99).opacity(0.13)
+        case .pewter: return Color.white.opacity(0.58)
+        }
+    }
+
+    var activeCardHoverFill: Color {
+        isLight ? Color.white.opacity(0.76) : Color.white.opacity(0.16)
+    }
+
+    var activeCardBorder: Color {
+        switch self {
+        case .smoked: return Color.white.opacity(0.20)
+        case .cosmos: return Color(red: 0.78, green: 0.82, blue: 1.00).opacity(0.20)
+        case .bamboo: return Color(red: 0.73, green: 0.97, blue: 0.82).opacity(0.18)
+        case .sapphire: return Color(red: 0.73, green: 0.90, blue: 0.99).opacity(0.24)
+        case .pewter: return Color.white.opacity(0.82)
+        }
+    }
+
+    var doneCardFill: Color {
+        isLight ? Color.white.opacity(0.36) : Color.white.opacity(0.06)
+    }
+
+    var doneCardHoverFill: Color {
+        isLight ? Color.white.opacity(0.54) : Color.white.opacity(0.10)
+    }
+
+    var waitingCardFill: Color {
+        isLight
+            ? Color(red: 1.00, green: 0.96, blue: 0.86).opacity(0.88)
+            : Color(red: 0.98, green: 0.75, blue: 0.14).opacity(0.18)
+    }
+
+    var waitingCardBorder: Color {
+        isLight
+            ? Color(red: 0.92, green: 0.65, blue: 0.15).opacity(0.65)
+            : Color(red: 0.99, green: 0.83, blue: 0.30).opacity(0.46)
+    }
+
+    var waitingTitleAccent: Color {
+        isLight
+            ? Color(red: 0.68, green: 0.32, blue: 0.04)
+            : Color(red: 0.99, green: 0.90, blue: 0.54)
+    }
+
+    var waitingDetailColor: Color {
+        isLight
+            ? Color(red: 0.52, green: 0.25, blue: 0.06)
+            : Color(red: 0.99, green: 0.95, blue: 0.78)
+    }
+
+    var ringTrackColor: Color {
+        switch self {
+        case .smoked: return Color.white.opacity(0.20)
+        case .cosmos: return Color(red: 0.88, green: 0.91, blue: 1.00).opacity(0.20)
+        case .bamboo: return Color(red: 0.86, green: 0.99, blue: 0.91).opacity(0.20)
+        case .sapphire: return Color(red: 0.73, green: 0.90, blue: 0.99).opacity(0.22)
+        case .pewter: return Color(red: 0.06, green: 0.09, blue: 0.16).opacity(0.15)
+        }
+    }
+
+    var doneCheckBg: Color {
+        switch self {
+        case .smoked, .cosmos: return Color(red: 0.32, green: 0.88, blue: 0.66).opacity(0.24)
+        case .bamboo: return Color(red: 0.55, green: 0.90, blue: 0.53).opacity(0.24)
+        case .sapphire: return Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.24)
+        case .pewter: return Color(red: 0.06, green: 0.46, blue: 0.43).opacity(0.16)
+        }
+    }
+
+    var doneCheckFg: Color {
+        switch self {
+        case .smoked, .cosmos: return Color(red: 0.43, green: 0.91, blue: 0.72)
+        case .bamboo: return Color(red: 0.53, green: 0.94, blue: 0.67)
+        case .sapphire: return Color(red: 0.49, green: 0.83, blue: 0.99)
+        case .pewter: return Color(red: 0.06, green: 0.46, blue: 0.43)
+        }
+    }
+
+    func ringColor(for phase: SessionPhase) -> Color {
+        switch phase {
+        case .thinking, .runningTool:
+            return swatchColor
+        case .streaming:
+            switch self {
+            case .smoked, .cosmos: return Color(red: 0.37, green: 0.92, blue: 0.83)
+            case .bamboo: return Color(red: 0.65, green: 0.95, blue: 0.64)
+            case .sapphire: return Color(red: 0.49, green: 0.91, blue: 0.99)
+            case .pewter: return Color(red: 0.05, green: 0.58, blue: 0.53)
+            }
+        case .waiting:
+            return isLight
+                ? Color(red: 0.85, green: 0.47, blue: 0.02)
+                : Color(red: 0.99, green: 0.83, blue: 0.30)
+        case .completed:
+            return doneCheckFg
+        case .error:
+            return isLight
+                ? Color(red: 0.86, green: 0.15, blue: 0.15)
+                : Color(red: 0.98, green: 0.44, blue: 0.52)
+        case .canceled, .idle:
+            return tertiaryText
+        }
+    }
+}
+
 struct HudSettings: Codable, Equatable {
     static let minOpacity: Double = 0.20
     static let maxOpacity: Double = 1.00
@@ -259,9 +645,34 @@ struct HudSettings: Codable, Equatable {
     var positionPreset: String = "top_right"
     var customTopCenterX: Double? = nil
     var customTopY: Double? = nil
+    var customAnchorMode: String? = nil
+    var customAnchorX: Double? = nil
     var maxSessionsShown: Int = 5
+    var styleMode: String? = nil
+    var theme: String? = nil
+    var collapsedStyle: String? = nil
+    var hoverMorph: String? = nil
     var clearedCompletedBefore: Double? = nil
     var dismissedSessions: [String: Double]? = nil
+
+    var resolvedStyleMode: HudStyleMode {
+        HudStyleMode(rawValue: styleMode ?? "") ?? .classic
+    }
+
+    var resolvedTheme: HudTheme {
+        if theme == "pine" {
+            return .bamboo
+        }
+        return HudTheme(rawValue: theme ?? "") ?? .cosmos
+    }
+
+    var resolvedCollapsedStyle: HudCollapsedStyle {
+        HudCollapsedStyle(rawValue: collapsedStyle ?? "") ?? .e05
+    }
+
+    var resolvedHoverMorph: HudHoverMorph {
+        HudHoverMorph(rawValue: hoverMorph ?? "") ?? .m1
+    }
 
     var clampedOpacity: Double {
         min(Self.maxOpacity, max(Self.minOpacity, opacity))
@@ -283,9 +694,9 @@ enum FlashBanner: Equatable {
 
     var color: Color {
         switch self {
-        case .completed: return Color(red: 0.20, green: 0.84, blue: 0.60)
-        case .waiting: return Color(red: 0.98, green: 0.75, blue: 0.18)
-        case .error: return Color(red: 0.97, green: 0.36, blue: 0.40)
+        case .completed: return Color(red: 0.32, green: 0.84, blue: 0.54)
+        case .waiting: return Color(red: 1.00, green: 0.80, blue: 0.30)
+        case .error: return Color(red: 1.00, green: 0.42, blue: 0.45)
         }
     }
 }
@@ -430,6 +841,48 @@ private struct SummaryDBEntry {
     var projectId: String
 }
 
+struct NotchScreenMetrics: Equatable {
+    var hasHardwareNotch: Bool
+    var notchWidth: CGFloat
+    var notchCenterX: CGFloat
+    var menuBarHeight: CGFloat
+    var screenFrame: NSRect
+    var visibleFrame: NSRect
+
+    static func current(for preferredScreen: NSScreen? = nil) -> NotchScreenMetrics {
+        let screen = preferredScreen ?? NSScreen.main ?? NSScreen.screens.first
+        let full = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let vis = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 876)
+        let safeTop = screen?.safeAreaInsets.top ?? 0
+
+        if safeTop > 0,
+           let leftAux = screen?.auxiliaryTopLeftArea,
+           let rightAux = screen?.auxiliaryTopRightArea,
+           rightAux.minX > leftAux.maxX {
+            let nw = rightAux.minX - leftAux.maxX
+            let cx = (leftAux.maxX + rightAux.minX) / 2.0
+            let mh = max(safeTop, full.maxY - vis.maxY)
+            return NotchScreenMetrics(
+                hasHardwareNotch: true,
+                notchWidth: nw,
+                notchCenterX: cx,
+                menuBarHeight: mh,
+                screenFrame: full,
+                visibleFrame: vis
+            )
+        }
+
+        return NotchScreenMetrics(
+            hasHardwareNotch: safeTop > 0,
+            notchWidth: safeTop > 0 ? 186 : 0,
+            notchCenterX: full.midX,
+            menuBarHeight: max(24, full.maxY - vis.maxY),
+            screenFrame: full,
+            visibleFrame: vis
+        )
+    }
+}
+
 private struct CachedTaskMeta {
     var mtime: Date
     var stats: TaskChecklistStats?
@@ -442,6 +895,8 @@ final class HudViewModel: ObservableObject {
     @Published var sessions: [SessionSnapshot] = []
     @Published var settings: HudSettings = HudSettings()
     @Published var isHovered: Bool = false
+    @Published var isHoverArming: Bool = false
+    @Published var isCanvasExpanded: Bool = false
     @Published var isOpacityBarOpen: Bool = false
     @Published var flashBanner: FlashBanner? = nil
     @Published var jumpingSessionId: String? = nil
@@ -449,6 +904,7 @@ final class HudViewModel: ObservableObject {
     @Published var pulseTick: Bool = false
 
     var onLayoutChange: (() -> Void)?
+    var onLayoutChangeNow: (() -> Void)?
     var onAlphaChange: (() -> Void)?
     var onStatusChange: (() -> Void)?
 
@@ -473,7 +929,9 @@ final class HudViewModel: ObservableObject {
     private var lastSettingsMtime: Date? = nil
     private var lastChimeAt: Date = .distantPast
     private var flashClearWorkItem: DispatchWorkItem? = nil
+    private var hoverEnterWorkItem: DispatchWorkItem? = nil
     private var hoverExitWorkItem: DispatchWorkItem? = nil
+    private var collapseCanvasWorkItem: DispatchWorkItem? = nil
     private var pendingOpacitySaveWorkItem: DispatchWorkItem? = nil
     private var watchSources: [DispatchSourceFileSystemObject] = []
 
@@ -518,12 +976,78 @@ final class HudViewModel: ObservableObject {
         settings.pinnedExpanded || isHovered
     }
 
+    var effectiveCanvasExpanded: Bool {
+        settings.pinnedExpanded || isCanvasExpanded || isHovered
+    }
+
+    var isBottomAnchored: Bool {
+        let cs = settings.resolvedCollapsedStyle
+        if cs == .e05 { return false }
+        return settings.positionPreset == "bottom_right" || settings.positionPreset == "bottom_left"
+    }
+
+    var resolvedHorizontalZone: String {
+        let cs = settings.resolvedCollapsedStyle
+        if cs == .e05 {
+            return "center"
+        }
+        if cs == .island && (settings.positionPreset == "top_right" || settings.positionPreset == "top_center") {
+            return "center"
+        }
+        switch settings.positionPreset {
+        case "top_center":
+            return "center"
+        case "bottom_left":
+            return "left"
+        case "bottom_right", "top_right":
+            return "right"
+        case "custom":
+            return settings.customAnchorMode ?? "right"
+        default:
+            return "right"
+        }
+    }
+
+    var horizontalAlignment: HorizontalAlignment {
+        switch resolvedHorizontalZone {
+        case "left": return .leading
+        case "center": return .center
+        default: return .trailing
+        }
+    }
+
+    var anchorAlignment: Alignment {
+        switch (isBottomAnchored, resolvedHorizontalZone) {
+        case (false, "left"): return .topLeading
+        case (false, "center"): return .top
+        case (false, _): return .topTrailing
+        case (true, "left"): return .bottomLeading
+        case (true, "center"): return .bottom
+        case (true, _): return .bottomTrailing
+        }
+    }
+
+    var anchorUnitPoint: UnitPoint {
+        switch (isBottomAnchored, resolvedHorizontalZone) {
+        case (false, "left"): return .topLeading
+        case (false, "center"): return .top
+        case (false, _): return .topTrailing
+        case (true, "left"): return .bottomLeading
+        case (true, "center"): return .bottom
+        case (true, _): return .bottomTrailing
+        }
+    }
+
     var primarySession: SessionSnapshot? {
         sessions.first
     }
 
     var activeCount: Int {
         sessions.filter { $0.phase.isActive }.count
+    }
+
+    var waitingCount: Int {
+        sessions.filter { $0.phase == .waiting }.count
     }
 
     var clearableCount: Int {
@@ -567,26 +1091,78 @@ final class HudViewModel: ObservableObject {
 
     func setHovering(_ hovering: Bool) {
         hoverExitWorkItem?.cancel()
+        hoverEnterWorkItem?.cancel()
+        collapseCanvasWorkItem?.cancel()
+
         if hovering {
-            if !isHovered {
-                isHovered = true
-                onLayoutChange?()
-                onAlphaChange?()
+            if settings.pinnedExpanded || isHovered {
+                isHoverArming = false
+                isCanvasExpanded = true
+                return
             }
-        } else {
-            let item = DispatchWorkItem { [weak self] in
-                guard let self = self else { return }
-                if self.isHovered {
-                    self.isHovered = false
-                    if !self.settings.pinnedExpanded {
-                        self.isOpacityBarOpen = false
-                    }
-                    self.onLayoutChange?()
-                    self.onAlphaChange?()
+
+            let morph = settings.resolvedHoverMorph
+            let dwell: TimeInterval = (morph == .m3) ? 0.095 : 0.025
+            if morph == .m3 && !isHoverArming {
+                withAnimation(.easeOut(duration: 0.09)) {
+                    isHoverArming = true
                 }
             }
-            hoverExitWorkItem = item
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.20, execute: item)
+
+            let enterItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.isHoverArming = false
+                // Step 1: Expand transparent NSPanel canvas while keeping beacon at exact anchor pixel
+                self.isCanvasExpanded = true
+                self.onAlphaChange?()
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.onLayoutChangeNow?()
+                    // Step 2: Run smooth SwiftUI spring morph inside the already-sized NSPanel
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        withAnimation(self.settings.resolvedHoverMorph.expandAnimation) {
+                            self.isHovered = true
+                        }
+                    }
+                }
+            }
+            hoverEnterWorkItem = enterItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + dwell, execute: enterItem)
+        } else {
+            if isHoverArming {
+                withAnimation(.easeOut(duration: 0.12)) {
+                    isHoverArming = false
+                }
+            }
+            let exitItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                if self.settings.pinnedExpanded {
+                    self.isHovered = false
+                    return
+                }
+                if self.isHovered {
+                    let morph = self.settings.resolvedHoverMorph
+                    withAnimation(morph.collapseAnimation) {
+                        self.isHovered = false
+                    }
+                    self.isOpacityBarOpen = false
+                    self.onAlphaChange?()
+
+                    let shrinkItem = DispatchWorkItem { [weak self] in
+                        guard let self = self, !self.isHovered, !self.settings.pinnedExpanded else { return }
+                        self.isCanvasExpanded = false
+                        self.onLayoutChange?()
+                    }
+                    self.collapseCanvasWorkItem = shrinkItem
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.26, execute: shrinkItem)
+                } else if self.isCanvasExpanded {
+                    self.isCanvasExpanded = false
+                    self.onLayoutChange?()
+                }
+            }
+            hoverExitWorkItem = exitItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: exitItem)
         }
     }
 
@@ -625,6 +1201,11 @@ final class HudViewModel: ObservableObject {
         mutate(&next)
         next.opacity = next.clampedOpacity
         settings = next
+        if next.pinnedExpanded {
+            isCanvasExpanded = true
+        } else if !isHovered {
+            isCanvasExpanded = false
+        }
         saveSettings()
         writeHelperStatus()
         onLayoutChange?()
@@ -692,6 +1273,10 @@ final class HudViewModel: ObservableObject {
             "autoDimIdle": settings.autoDimIdle,
             "opacity": settings.opacity,
             "positionPreset": settings.positionPreset,
+            "styleMode": settings.resolvedStyleMode.rawValue,
+            "theme": settings.resolvedTheme.rawValue,
+            "collapsedStyle": settings.resolvedCollapsedStyle.rawValue,
+            "hoverMorph": settings.resolvedHoverMorph.rawValue,
             "activeCount": activeCount,
             "totalTracked": sessions.count,
             "sessions": serializedSessions,
@@ -832,6 +1417,11 @@ final class HudViewModel: ObservableObject {
             }
             if decoded != settings {
                 settings = decoded
+                if decoded.pinnedExpanded {
+                    isCanvasExpanded = true
+                } else if !isHovered {
+                    isCanvasExpanded = false
+                }
                 refreshAll()
                 onLayoutChange?()
                 onAlphaChange?()
@@ -1085,8 +1675,10 @@ final class HudViewModel: ObservableObject {
             // While waiting for next model invocation TTFT / extended thinking (can take 10-120s on large contexts;
             // explicit user cancel is caught immediately in <0.1s via Stop hook above).
             if age < 180.0 {
-                let prefix = rec.tailFirstToolSummary.isEmpty ? "工具已完成" : "已完成 \(rec.tailFirstToolSummary)"
-                return (.thinking, "\(prefix) · 模型推理中…")
+                let msg = rec.tailFirstToolSummary.isEmpty
+                    ? "模型正在推理下一步…"
+                    : "推理中 · \(rec.tailFirstToolSummary)"
+                return (.thinking, msg)
             }
             if rec.tailStatus == 7 {
                 return (.error, "工具报错后已停止")
@@ -1848,9 +2440,10 @@ final class HudViewModel: ObservableObject {
 // MARK: - SwiftUI Views & Frosted Glass Backdrop
 
 struct VisualEffectBlur: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .hudWindow
+    var material: NSVisualEffectView.Material = .popover
     var blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
     var alpha: CGFloat = 1.0
+    var appearanceName: NSAppearance.Name = .darkAqua
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -1859,6 +2452,7 @@ struct VisualEffectBlur: NSViewRepresentable {
         view.state = .active
         view.isEmphasized = true
         view.alphaValue = alpha
+        view.appearance = NSAppearance(named: appearanceName)
         return view
     }
 
@@ -1867,6 +2461,7 @@ struct VisualEffectBlur: NSViewRepresentable {
         nsView.blendingMode = blendingMode
         nsView.state = .active
         nsView.alphaValue = alpha
+        nsView.appearance = NSAppearance(named: appearanceName)
     }
 }
 
@@ -1876,6 +2471,13 @@ final class OpacityTrackNSView: NSView {
     var value: Double = 0.94 {
         didSet {
             if abs(oldValue - value) > 0.0005 {
+                needsDisplay = true
+            }
+        }
+    }
+    var isLightTheme: Bool = false {
+        didSet {
+            if oldValue != isLightTheme {
                 needsDisplay = true
             }
         }
@@ -1904,32 +2506,29 @@ final class OpacityTrackNSView: NSView {
 
         let trackRect = NSRect(x: insetX, y: midY - trackH / 2.0, width: usableW, height: trackH)
         let groovePath = NSBezierPath(roundedRect: trackRect, xRadius: trackH / 2.0, yRadius: trackH / 2.0)
-        NSColor(calibratedWhite: 0.0, alpha: 0.48).setFill()
+        if isLightTheme {
+            NSColor(calibratedRed: 0.06, green: 0.09, blue: 0.16, alpha: 0.14).setFill()
+        } else {
+            NSColor(calibratedWhite: 1.0, alpha: 0.18).setFill()
+        }
         groovePath.fill()
-        NSColor(calibratedWhite: 1.0, alpha: 0.14).setStroke()
-        groovePath.lineWidth = 0.6
-        groovePath.stroke()
 
         let fillW = max(trackH, thumbX - insetX)
         let fillRect = NSRect(x: insetX, y: midY - trackH / 2.0, width: min(usableW, fillW), height: trackH)
         let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: trackH / 2.0, yRadius: trackH / 2.0)
-        if let grad = NSGradient(colors: [
-            NSColor(calibratedRed: 0.36, green: 0.45, blue: 0.96, alpha: 1.0),
-            NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 1.0),
-            NSColor(calibratedRed: 0.20, green: 0.86, blue: 0.78, alpha: 1.0),
-        ]) {
-            grad.draw(in: fillPath, angle: 0)
+        if isLightTheme {
+            NSColor(calibratedRed: 0.15, green: 0.39, blue: 0.92, alpha: 0.92).setFill()
         } else {
-            NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 1.0).setFill()
-            fillPath.fill()
+            NSColor(calibratedWhite: 0.94, alpha: 0.92).setFill()
         }
+        fillPath.fill()
 
-        let thumbR: CGFloat = 6.2
+        let thumbR: CGFloat = 5.8
         let thumbRect = NSRect(x: thumbX - thumbR, y: midY - thumbR, width: thumbR * 2.0, height: thumbR * 2.0)
         NSGraphicsContext.saveGraphicsState()
         let shadow = NSShadow()
-        shadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: 0.45)
-        shadow.shadowBlurRadius = 3.5
+        shadow.shadowColor = NSColor(calibratedWhite: 0.0, alpha: isLightTheme ? 0.25 : 0.42)
+        shadow.shadowBlurRadius = 3.0
         shadow.shadowOffset = NSSize(width: 0, height: -1)
         shadow.set()
         let thumbPath = NSBezierPath(ovalIn: thumbRect)
@@ -1937,9 +2536,9 @@ final class OpacityTrackNSView: NSView {
         thumbPath.fill()
         NSGraphicsContext.restoreGraphicsState()
 
-        let ringPath = NSBezierPath(ovalIn: thumbRect.insetBy(dx: 0.6, dy: 0.6))
-        NSColor(calibratedRed: 0.22, green: 0.74, blue: 0.98, alpha: 0.85).setStroke()
-        ringPath.lineWidth = 1.2
+        let ringPath = NSBezierPath(ovalIn: thumbRect.insetBy(dx: 0.5, dy: 0.5))
+        NSColor(calibratedWhite: 0.0, alpha: isLightTheme ? 0.16 : 0.12).setStroke()
+        ringPath.lineWidth = 0.8
         ringPath.stroke()
     }
 
@@ -1985,197 +2584,1694 @@ final class OpacityTrackNSView: NSView {
 
 struct HudOpacityScrubber: NSViewRepresentable {
     var value: Double
+    var isLightTheme: Bool = false
     var onChange: (Double, Bool) -> Void
 
     func makeNSView(context: Context) -> OpacityTrackNSView {
         let v = OpacityTrackNSView()
         v.value = value
+        v.isLightTheme = isLightTheme
         v.onValueChanged = onChange
         return v
     }
 
     func updateNSView(_ nsView: OpacityTrackNSView, context: Context) {
         nsView.value = value
+        nsView.isLightTheme = isLightTheme
         nsView.onValueChanged = onChange
     }
 }
 
-/// Recessed obsidian-glass optical fiber progress track with internal liquid sheen,
-/// focused specular laser tip, and subtle forward ambient ripple.
-struct ObsidianLaserBar: View {
-    let progressClosure: (Date) -> Double
-    let colors: [Color]
-    let glow: Color
-    var height: CGFloat = 4.0
-    var isPaused: Bool = false
+/// Soft stationary ambient wash (no distracting vertical line or moving sweep across text).
+struct GlassProgressWash: View {
+    let session: SessionSnapshot
+    let theme: HudTheme
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+        let isWaiting = session.phase == .waiting
+        let accent = theme.ringColor(for: session.phase)
+        let washAlpha: Double = theme.isLight ? (isWaiting ? 0.12 : 0.09) : (isWaiting ? 0.16 : 0.12)
+
+        TimelineView(.animation(minimumInterval: 1.0 / 6.0)) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
-            let rawProgress = CGFloat(min(1.0, max(0.06, progressClosure(timeline.date))))
-            let sheenPhase = CGFloat(t.truncatingRemainder(dividingBy: 1.65) / 1.65)
-            let ghostPhase = CGFloat(t.truncatingRemainder(dividingBy: 2.30) / 2.30)
-            let breath = isPaused ? CGFloat(0.42 + 0.42 * 0.5 * (1.0 + sin(t * 2.8))) : 0.66
+            let progress = CGFloat(min(1.0, max(0.18, session.estimatedProgress(at: timeline.date))))
+            let breath = isWaiting ? CGFloat(0.68 + 0.32 * 0.5 * (1.0 + sin(t * 2.4))) : 1.0
 
             GeometryReader { geo in
                 let w = geo.size.width
-                let fillW = round(max(min(w, 14), min(w, w * rawProgress)) * 2.0) / 2.0
-                let unlitW = max(0, w - fillW)
-                let ghostW = min(64, max(26, unlitW * 0.52))
-                let ghostX = fillW - 10 + (unlitW + ghostW) * ghostPhase - ghostW
-                let tipW = min(16, max(6, fillW * 0.28))
+                let h = geo.size.height
+                let softEnd = min(1.0, progress + 0.16)
 
-                ZStack(alignment: .leading) {
-                    // 1. Machined dark-glass groove + ambient ghost echo
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.black.opacity(0.46))
-                        Capsule()
-                            .fill(glow.opacity(0.055))
-
-                        if !isPaused && unlitW > 18 {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.clear, glow.opacity(0.20), .clear],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: ghostW, height: height)
-                                .offset(x: ghostX)
-                        }
-                    }
-                    .frame(width: w, height: height)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.085), lineWidth: 0.6)
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: accent.opacity(washAlpha * 0.85), location: 0.0),
+                                .init(color: accent.opacity(washAlpha * 0.55), location: progress * 0.78),
+                                .init(color: .clear, location: softEnd),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-
-                    // 2. Luminous chromatic core + liquid sheen + seamless laser flare tip
-                    ZStack(alignment: .trailing) {
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: colors,
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-
-                        VStack(spacing: 0) {
-                            Capsule()
-                                .fill(Color.white.opacity(0.25))
-                                .frame(height: max(1.0, height * 0.28))
-                            Spacer(minLength: 0)
-                        }
-
-                        if !isPaused {
-                            let waveW = max(20, fillW * 0.45)
-                            let waveOffset = -fillW + (fillW + waveW) * sheenPhase
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.clear, Color.white.opacity(0.40), .clear],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: waveW, height: height)
-                                .offset(x: waveOffset)
-                        }
-
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .clear, location: 0.0),
-                                        .init(color: Color.white.opacity(isPaused ? 0.45 : 0.60), location: 0.65),
-                                        .init(color: Color.white.opacity(isPaused ? 0.82 : 0.95), location: 1.0),
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: tipW, height: height)
-                    }
-                    .frame(width: fillW, height: height)
-                    .clipShape(Capsule())
-                    .shadow(color: glow.opacity(breath), radius: 4.0, x: 0, y: 0)
-                }
+                    .opacity(breath)
+                    .frame(width: w, height: h)
             }
-            .frame(height: height)
+            .allowsHitTesting(false)
         }
     }
 }
 
-/// Obsidian Laser Progress Track:
-/// - Checklist Mode (`task.md` exists): Crisp glass milestone capsules (`<= 10`) or exact laser track (`> 10`).
-/// - Open-Ended Turn Mode: Full-width machined obsidian laser rail with zero redundant stage label clutter.
-struct SessionProgressTrack: View {
-    let session: SessionSnapshot
-
-    private let sky = Color(red: 0.22, green: 0.74, blue: 0.98)
-    private let cyan = Color(red: 0.16, green: 0.86, blue: 0.84)
-    private let mint = Color(red: 0.20, green: 0.85, blue: 0.62)
+/// S6 · Living Mesh Aurora Backdrop (drifting ocean-cobalt & aurora-emerald blobs behind frosted glass).
+struct LivingAuroraMeshView: View {
+    let isAnimating: Bool
 
     var body: some View {
-        if session.phase.isActive, let ts = session.taskStats, ts.total > 0 {
-            if ts.total <= 10 {
-                let activeLimit = ts.done + max(ts.inProgress, 1)
+        let oceanBlue = Color(red: 0.23, green: 0.51, blue: 0.96)   // #3B82F6
+        let auroraMint = Color(red: 0.06, green: 0.73, blue: 0.51)  // #10B981
+
+        if isAnimating {
+            TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let dx1 = CGFloat(sin(t * 0.72)) * 28.0
+                let dy1 = CGFloat(cos(t * 0.54)) * 16.0
+                let sc1 = 1.0 + 0.12 * CGFloat(sin(t * 0.65))
+
+                let dx2 = CGFloat(cos(t * 0.64)) * -26.0
+                let dy2 = CGFloat(sin(t * 0.50)) * -18.0
+                let sc2 = 1.0 + 0.12 * CGFloat(cos(t * 0.58))
+
+                GeometryReader { geo in
+                    ZStack {
+                        Color(red: 0.075, green: 0.086, blue: 0.15) // #131626
+
+                        RadialGradient(
+                            colors: [oceanBlue.opacity(0.55), oceanBlue.opacity(0.18), .clear],
+                            center: .center,
+                            startRadius: 6,
+                            endRadius: 125
+                        )
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(sc1)
+                        .position(x: 34 + dx1, y: 24 + dy1)
+
+                        RadialGradient(
+                            colors: [auroraMint.opacity(0.52), auroraMint.opacity(0.16), .clear],
+                            center: .center,
+                            startRadius: 6,
+                            endRadius: 125
+                        )
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(sc2)
+                        .position(x: geo.size.width - 28 + dx2, y: geo.size.height - 20 + dy2)
+                    }
+                }
+            }
+        } else {
+            GeometryReader { geo in
+                ZStack {
+                    Color(red: 0.075, green: 0.086, blue: 0.15)
+                    RadialGradient(
+                        colors: [oceanBlue.opacity(0.36), .clear],
+                        center: .topLeading,
+                        startRadius: 6,
+                        endRadius: 165
+                    )
+                    RadialGradient(
+                        colors: [auroraMint.opacity(0.32), .clear],
+                        center: .bottomTrailing,
+                        startRadius: 6,
+                        endRadius: 165
+                    )
+                    .frame(width: geo.size.width, height: geo.size.height)
+                }
+            }
+        }
+    }
+}
+
+/// P4 · Authentic Lifecycle Stage Capsules (思考 -> 执行 -> 输出 -> 完成, or task.md checklist).
+struct StageMilestoneCapsules: View {
+    let session: SessionSnapshot
+    let theme: HudTheme
+    var styleMode: HudStyleMode = .classic
+    let pulseTick: Bool
+
+    var body: some View {
+        let doneColor: Color = styleMode == .aurora
+            ? Color(red: 0.43, green: 0.91, blue: 0.72) // S6 Emerald #6EE7B7
+            : theme.ringColor(for: session.phase)
+        let activeColor: Color = styleMode == .aurora
+            ? Color(red: 0.49, green: 0.83, blue: 0.99) // S6 Sky #7DD3FC
+            : theme.ringColor(for: session.phase)
+        let track: Color = styleMode == .aurora
+            ? Color.white.opacity(0.24)
+            : theme.ringTrackColor
+
+        if let ts = session.taskStats, ts.total > 0, ts.total <= 8 {
+            let activeIdx = min(ts.total - 1, ts.done)
+            HStack(spacing: 3) {
+                ForEach(0..<ts.total, id: \.self) { idx in
+                    if idx < ts.done {
+                        Capsule()
+                            .fill(doneColor.opacity(0.92))
+                            .frame(width: 10, height: 3.5)
+                    } else if idx == activeIdx && session.phase.isActive {
+                        Capsule()
+                            .fill(activeColor.opacity(pulseTick ? 1.0 : 0.56))
+                            .frame(width: 18, height: 3.5)
+                    } else {
+                        Capsule()
+                            .fill(track)
+                            .frame(width: 5.5, height: 3.5)
+                    }
+                }
+            }
+            .animation(.easeInOut(duration: 0.45), value: pulseTick)
+        } else {
+            let stage = max(1, min(4, session.lifecycleStage))
+            HStack(spacing: 3) {
+                ForEach(1...4, id: \.self) { idx in
+                    if idx < stage {
+                        Capsule()
+                            .fill(doneColor.opacity(0.92))
+                            .frame(width: 11, height: 3.5)
+                    } else if idx == stage && session.phase.isActive {
+                        Capsule()
+                            .fill(activeColor.opacity(pulseTick ? 1.0 : 0.56))
+                            .frame(width: 20, height: 3.5)
+                    } else {
+                        Capsule()
+                            .fill(track)
+                            .frame(width: 6, height: 3.5)
+                    }
+                }
+            }
+            .animation(.easeInOut(duration: 0.45), value: pulseTick)
+        }
+    }
+}
+
+/// Custom 4-Point Curved AI Starburst (`M12 2C12.6 7.4 16.6 11.4 22 12C16.6 12.6 12.6 16.6 12 22C11.4 16.6 7.4 12.6 2 12C7.4 11.4 11.4 7.4 12 2Z`).
+struct FourPointStarShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width
+        let h = rect.height
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + (x / 24.0) * w, y: rect.minY + (y / 24.0) * h)
+        }
+        var p = Path()
+        p.move(to: pt(12, 2))
+        p.addCurve(to: pt(22, 12), control1: pt(12.6, 7.4), control2: pt(16.6, 11.4))
+        p.addCurve(to: pt(12, 22), control1: pt(16.6, 12.6), control2: pt(12.6, 16.6))
+        p.addCurve(to: pt(2, 12), control1: pt(11.4, 16.6), control2: pt(7.4, 12.6))
+        p.addCurve(to: pt(12, 2), control1: pt(7.4, 11.4), control2: pt(11.4, 7.4))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// Leading AI Starburst Pulse (active) / Checkmark (completed) / Alert (waiting or error).
+struct SessionStatusGlyph: View {
+    let phase: SessionPhase
+    let theme: HudTheme
+    var styleMode: HudStyleMode = .classic
+    let pulseTick: Bool
+
+    var body: some View {
+        let accent: Color = {
+            if styleMode == .aurora && phase.isActive && phase != .waiting {
+                return phase == .thinking
+                    ? Color(red: 0.49, green: 0.83, blue: 0.99) // Sky #7DD3FC
+                    : Color(red: 0.43, green: 0.91, blue: 0.72) // Emerald #6EE7B7
+            }
+            return theme.ringColor(for: phase)
+        }()
+
+        if phase == .completed {
+            ZStack {
+                Circle()
+                    .fill(theme.doneCheckBg)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundColor(theme.doneCheckFg)
+            }
+            .frame(width: 18, height: 18)
+        } else if phase == .waiting {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(theme.isLight ? 0.22 : 0.26))
+                Text("!")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundColor(theme.waitingTitleAccent)
+            }
+            .frame(width: 18, height: 18)
+        } else if phase == .error {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(0.22))
+                Image(systemName: "exclamationmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(accent)
+            }
+            .frame(width: 18, height: 18)
+        } else if phase.isActive {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let wave = 0.5 * (1.0 + sin(t * 2.85))
+                let op = 0.48 + 0.52 * wave
+                let scale = 0.84 + 0.30 * wave
+                let deg = 18.0 * wave
+
+                FourPointStarShape()
+                    .fill(accent)
+                    .frame(width: 15, height: 15)
+                    .opacity(op)
+                    .scaleEffect(scale)
+                    .rotationEffect(.degrees(deg))
+                    .shadow(color: accent.opacity(0.38 * wave), radius: 3.5, x: 0, y: 0)
+                    .frame(width: 18, height: 18)
+            }
+        } else {
+            FourPointStarShape()
+                .fill(theme.tertiaryText.opacity(0.55))
+                .frame(width: 11, height: 11)
+                .frame(width: 18, height: 18)
+        }
+    }
+}
+
+/// Liquid meniscus shape with G1 concave top bezel shoulders & continuous rounded bottom corners.
+struct NotchMeniscusShape: Shape {
+    var shoulderRadius: CGFloat = 9
+    var bottomRadius: CGFloat = 13
+
+    func path(in rect: CGRect) -> Path {
+        let s = min(shoulderRadius, rect.width * 0.2, rect.height * 0.45)
+        let bodyW = max(8, rect.width - 2.0 * s)
+        let r = min(bottomRadius, bodyW * 0.5, max(2, rect.height - s))
+
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        // Right concave meniscus shoulder curving down into right wall
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX - s, y: rect.minY + s),
+            control: CGPoint(x: rect.maxX - s, y: rect.minY)
+        )
+        p.addLine(to: CGPoint(x: rect.maxX - s, y: rect.maxY - r))
+        // Bottom-right corner
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX - s - r, y: rect.maxY),
+            control: CGPoint(x: rect.maxX - s, y: rect.maxY)
+        )
+        p.addLine(to: CGPoint(x: rect.minX + s + r, y: rect.maxY))
+        // Bottom-left corner
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX + s, y: rect.maxY - r),
+            control: CGPoint(x: rect.minX + s, y: rect.maxY)
+        )
+        p.addLine(to: CGPoint(x: rect.minX + s, y: rect.minY + s))
+        // Left concave meniscus shoulder curving back to top bezel
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.minY),
+            control: CGPoint(x: rect.minX + s, y: rect.minY)
+        )
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// Open bottom-and-sides rim path for NotchMeniscusShape (leaves top bezel edge 100% seamless).
+struct NotchMeniscusRimShape: Shape {
+    var shoulderRadius: CGFloat = 9
+    var bottomRadius: CGFloat = 13
+
+    func path(in rect: CGRect) -> Path {
+        let s = min(shoulderRadius, rect.width * 0.2, rect.height * 0.45)
+        let bodyW = max(8, rect.width - 2.0 * s)
+        let r = min(bottomRadius, bodyW * 0.5, max(2, rect.height - s))
+
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX + s, y: rect.minY + s),
+            control: CGPoint(x: rect.minX + s, y: rect.minY)
+        )
+        p.addLine(to: CGPoint(x: rect.minX + s, y: rect.maxY - r))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.minX + s + r, y: rect.maxY),
+            control: CGPoint(x: rect.minX + s, y: rect.maxY)
+        )
+        p.addLine(to: CGPoint(x: rect.maxX - s - r, y: rect.maxY))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX - s, y: rect.maxY - r),
+            control: CGPoint(x: rect.maxX - s, y: rect.maxY)
+        )
+        p.addLine(to: CGPoint(x: rect.maxX - s, y: rect.minY + s))
+        p.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY),
+            control: CGPoint(x: rect.maxX - s, y: rect.minY)
+        )
+        return p
+    }
+}
+
+/// High-density frosted surface for micro-beacons (prevents IDE tab text bleed-through).
+struct BeaconSurfaceModifier<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    var variant: Variant = .primary
+
+    enum Variant {
+        case primary
+        case emerald
+        case amber
+    }
+
+    func body(content: Content) -> some View {
+        let solidTint = max(0.88, tintAlpha)
+        let emeraldColors: [Color] = theme.isLight
+            ? [Color(red: 0.86, green: 0.96, blue: 0.92), Color(red: 0.78, green: 0.92, blue: 0.87)]
+            : [Color(red: 0.07, green: 0.22, blue: 0.19), Color(red: 0.04, green: 0.14, blue: 0.13)]
+        let amberColors: [Color] = theme.isLight
+            ? [Color(red: 0.99, green: 0.94, blue: 0.82), Color(red: 0.96, green: 0.88, blue: 0.70)]
+            : [Color(red: 0.25, green: 0.17, blue: 0.07), Color(red: 0.16, green: 0.11, blue: 0.05)]
+
+        let fillColors: [Color] = {
+            switch variant {
+            case .primary: return theme.glassGradientColors
+            case .emerald: return emeraldColors
+            case .amber: return amberColors
+            }
+        }()
+
+        let borderColors: [Color] = {
+            switch variant {
+            case .primary:
+                if styleMode == .aurora {
+                    return [Color.white.opacity(0.34), Color(red: 0.43, green: 0.91, blue: 0.72).opacity(0.24)]
+                }
+                return theme.outerBorderColors
+            case .emerald:
+                return theme.isLight
+                    ? [Color(red: 0.06, green: 0.58, blue: 0.45).opacity(0.50), Color(red: 0.06, green: 0.58, blue: 0.45).opacity(0.22)]
+                    : [Color(red: 0.25, green: 0.88, blue: 0.64).opacity(0.48), Color(red: 0.25, green: 0.88, blue: 0.64).opacity(0.20)]
+            case .amber:
+                return [Color(red: 0.99, green: 0.76, blue: 0.20).opacity(0.68), Color(red: 0.99, green: 0.76, blue: 0.20).opacity(0.26)]
+            }
+        }()
+
+        content
+            .background(
+                ZStack {
+                    VisualEffectBlur(
+                        material: .popover,
+                        blendingMode: .behindWindow,
+                        alpha: CGFloat(max(0.88, blurAlpha)),
+                        appearanceName: theme.isLight ? .aqua : .darkAqua
+                    )
+                    if variant == .primary && styleMode == .aurora {
+                        LivingAuroraMeshView(isAnimating: true)
+                            .opacity(0.82)
+                    } else {
+                        LinearGradient(
+                            colors: fillColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .opacity(solidTint)
+                    }
+                }
+                .clipShape(shape)
+            )
+            .overlay(
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: borderColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: variant == .amber ? 1.15 : 1.0
+                )
+            )
+    }
+}
+
+/// Breathing 4-point star or waiting `!` mini glyph for compact beacons.
+struct BeaconMiniActiveGlyph: View {
+    let isActive: Bool
+    let isWaiting: Bool
+    let theme: HudTheme
+    var size: CGFloat = 11.5
+
+    var body: some View {
+        if isWaiting {
+            Text("!")
+                .font(.system(size: size * 0.92, weight: .heavy, design: .rounded))
+                .foregroundColor(theme.waitingTitleAccent)
+                .frame(width: size, height: size)
+        } else if isActive {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let wave = 0.5 + 0.5 * sin(t * 2.8)
+                FourPointStarShape()
+                    .fill(theme.swatchColor)
+                    .frame(width: size, height: size)
+                    .scaleEffect(0.84 + 0.28 * wave)
+                    .rotationEffect(.degrees(18.0 * wave))
+                    .opacity(0.62 + 0.38 * wave)
+            }
+        } else {
+            FourPointStarShape()
+                .fill(theme.tertiaryText.opacity(0.60))
+                .frame(width: size * 0.88, height: size * 0.88)
+        }
+    }
+}
+
+// MARK: - E01 ~ E10 Dual-State (Active × Completed) Micro Beacons
+
+/// E01 · 磁吸双子微舱 (Left Pod: Active + Timer · Right Pod: Completed Emerald Check)
+struct BeaconE01TwinPods: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let emeraldFg = theme.isLight ? Color(red: 0.05, green: 0.48, blue: 0.38) : Color(red: 0.43, green: 0.93, blue: 0.72)
+
+        HStack(spacing: 5) {
+            if active > 0 || done == 0 {
+                HStack(spacing: 5.5) {
+                    BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: theme, size: 12)
+                    if active > 0 {
+                        Text("\(active)")
+                            .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(theme.primaryText)
+                        if let s = vm.primarySession {
+                            Text(s.primaryTimeBadge(now: vm.now))
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundColor(theme.secondaryText.opacity(0.85))
+                        }
+                    } else {
+                        Text("待命")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .modifier(BeaconSurfaceModifier(
+                    shape: Capsule(),
+                    theme: theme,
+                    styleMode: styleMode,
+                    blurAlpha: blurAlpha,
+                    tintAlpha: tintAlpha,
+                    variant: waiting ? .amber : .primary
+                ))
+            }
+
+            if done > 0 {
                 HStack(spacing: 3.5) {
-                    ForEach(0..<ts.total, id: \.self) { idx in
-                        if idx < ts.done {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [sky, mint],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(height: 4.0)
-                                .shadow(color: mint.opacity(0.30), radius: 2.5)
-                        } else if idx < activeLimit {
-                            ObsidianLaserBar(
-                                progressClosure: { _ in 0.60 },
-                                colors: session.phase == .waiting ? session.phase.progressGradientColors : [sky, cyan],
-                                glow: session.phase == .waiting ? session.phase.progressGlowColor : cyan,
-                                height: 4.0,
-                                isPaused: session.phase == .waiting
-                            )
-                        } else {
-                            Capsule()
-                                .fill(Color.black.opacity(0.46))
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(Color.white.opacity(0.085), lineWidth: 0.6)
-                                )
-                                .frame(height: 4.0)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9.5, weight: .heavy))
+                        .foregroundColor(emeraldFg)
+                    Text("\(done)")
+                        .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(emeraldFg)
+                }
+                .padding(.horizontal, 9.5)
+                .frame(height: 32)
+                .modifier(BeaconSurfaceModifier(
+                    shape: Capsule(),
+                    theme: theme,
+                    styleMode: styleMode,
+                    blurAlpha: blurAlpha,
+                    tintAlpha: tintAlpha,
+                    variant: .emerald
+                ))
+                .scaleEffect(donePopScale)
+            }
+        }
+        .fixedSize()
+    }
+}
+
+/// E02 · 双环复杂功能方表 (Outer Rotating Active Arc + Inner Emerald Done Ring + ✦/✓ Readout)
+struct BeaconE02DualRingWatch: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let total = max(1, active + done)
+        let doneRatio = CGFloat(done) / CGFloat(total)
+        let activeColor = waiting ? theme.ringColor(for: .waiting) : theme.swatchColor
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.86, blue: 0.62)
+
+        VStack(spacing: 4) {
+            ZStack {
+                TimelineView(.animation(minimumInterval: active > 0 ? (1.0 / 24.0) : 1.0)) { timeline in
+                    let angle = active > 0
+                        ? timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3.2) / 3.2 * 360.0
+                        : 0.0
+                    ZStack {
+                        Circle()
+                            .stroke(theme.primaryText.opacity(0.14), lineWidth: 2.2)
+                        if active > 0 {
+                            Circle()
+                                .trim(from: 0.0, to: 0.42)
+                                .stroke(activeColor, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+                                .rotationEffect(.degrees(angle))
                         }
                     }
                 }
-                .padding(.top, 1.5)
-            } else {
-                ObsidianLaserBar(
-                    progressClosure: { now in session.estimatedProgress(at: now) },
-                    colors: [sky, cyan, mint],
-                    glow: mint,
-                    height: 4.0,
-                    isPaused: session.phase == .waiting
-                )
-                .padding(.top, 1.5)
+                .frame(width: 30, height: 30)
+
+                ZStack {
+                    Circle()
+                        .stroke(emeraldColor.opacity(0.18), lineWidth: 2.2)
+                    Circle()
+                        .trim(from: 0.0, to: doneRatio)
+                        .stroke(emeraldColor, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                .frame(width: 21, height: 21)
+                .scaleEffect(donePopScale)
+
+                if active > 0 {
+                    Text("\(active)")
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .foregroundColor(theme.primaryText)
+                } else {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundColor(emeraldColor)
+                }
             }
-        } else if session.phase.isActive {
-            ObsidianLaserBar(
-                progressClosure: { now in session.estimatedProgress(at: now) },
-                colors: session.phase.progressGradientColors,
-                glow: session.phase.progressGlowColor,
-                height: 4.0,
-                isPaused: session.phase == .waiting
+
+            HStack(spacing: 4) {
+                Text("✦\(active)")
+                    .foregroundColor(waiting ? theme.waitingTitleAccent : activeColor)
+                Spacer(minLength: 2)
+                Text("✓\(done)")
+                    .foregroundColor(emeraldColor)
+            }
+            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+            .padding(.horizontal, 2)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(width: 58, height: 54)
+        .modifier(BeaconSurfaceModifier(
+            shape: RoundedRectangle(cornerRadius: 15, style: .continuous),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waiting ? .amber : .primary
+        ))
+    }
+}
+
+/// E03 · 双腔沙漏结晶塔 (Upper Active Droplet Chamber + Lower Emerald Crystal Stack)
+struct BeaconE03HourglassTotem: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.88, blue: 0.64)
+        let activeColor = waiting ? theme.ringColor(for: .waiting) : theme.swatchColor
+
+        VStack(spacing: 5) {
+            VStack(spacing: 1.5) {
+                BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: theme, size: 11.5)
+                Text("\(active)")
+                    .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(active > 0 ? theme.primaryText : theme.tertiaryText)
+            }
+
+            ZStack {
+                Rectangle()
+                    .fill(theme.dividerColor)
+                    .frame(width: 16, height: 1)
+                if active > 0 {
+                    TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                        let p = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.4) / 1.4
+                        Circle()
+                            .fill(activeColor)
+                            .frame(width: 4.5, height: 4.5)
+                            .offset(y: CGFloat(-5.0 + 10.0 * p))
+                            .opacity(sin(p * .pi))
+                    }
+                }
+            }
+            .frame(height: 10)
+
+            VStack(spacing: 3) {
+                HStack(spacing: 2.5) {
+                    ForEach(0..<max(1, min(4, done)), id: \.self) { _ in
+                        Circle()
+                            .fill(done > 0 ? emeraldColor : theme.primaryText.opacity(0.16))
+                            .frame(width: 4.5, height: 4.5)
+                    }
+                }
+                Text("✓\(done)")
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(emeraldColor)
+            }
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity)
+            .background(emeraldColor.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .scaleEffect(donePopScale)
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 7)
+        .frame(width: 40)
+        .modifier(BeaconSurfaceModifier(
+            shape: RoundedRectangle(cornerRadius: 14, style: .continuous),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waiting ? .amber : .primary
+        ))
+    }
+}
+
+/// E04 · 动静双轨星系球 (Inner Orbiting Active Comets + Outer Static Emerald Gem Bezel)
+struct BeaconE04GalaxyOrb: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let activeColor = waiting ? theme.ringColor(for: .waiting) : theme.swatchColor
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.88, blue: 0.64)
+        let gemCount = min(6, done)
+
+        ZStack {
+            // Outer static completed emerald gems along bezel
+            ForEach(0..<gemCount, id: \.self) { idx in
+                let deg = -62.0 + Double(idx) * 25.0
+                Circle()
+                    .fill(emeraldColor)
+                    .frame(width: 4.8, height: 4.8)
+                    .shadow(color: emeraldColor.opacity(0.75), radius: 3)
+                    .offset(y: -21.5)
+                    .rotationEffect(.degrees(deg))
+            }
+            .scaleEffect(donePopScale)
+
+            // Inner orbiting active comets
+            if active > 0 {
+                TimelineView(.animation(minimumInterval: 1.0 / 24.0)) { timeline in
+                    let deg = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3.6) / 3.6 * 360.0
+                    ZStack {
+                        Circle()
+                            .stroke(activeColor.opacity(0.28), lineWidth: 1.0)
+                        Circle()
+                            .fill(activeColor)
+                            .frame(width: 5.2, height: 5.2)
+                            .shadow(color: activeColor.opacity(0.85), radius: 3.5)
+                            .offset(y: -16)
+                        if active >= 2 {
+                            Circle()
+                                .fill(activeColor.opacity(0.85))
+                                .frame(width: 4.4, height: 4.4)
+                                .offset(y: 16)
+                        }
+                    }
+                    .frame(width: 32, height: 32)
+                    .rotationEffect(.degrees(deg))
+                }
+            } else {
+                Circle()
+                    .stroke(theme.primaryText.opacity(0.12), lineWidth: 1.0)
+                    .frame(width: 32, height: 32)
+            }
+
+            VStack(spacing: 0.5) {
+                Text("\(active)↻")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .foregroundColor(active > 0 ? activeColor : theme.tertiaryText)
+                Text("\(done)✓")
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(emeraldColor)
+            }
+        }
+        .frame(width: 52, height: 52)
+        .modifier(BeaconSurfaceModifier(
+            shape: Circle(),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waiting ? .amber : .primary
+        ))
+    }
+}
+
+/// 灵动岛 · 刘海原生融黑 (Wraps directly around the MacBook hardware camera notch at y = screen.maxY!)
+struct BeaconE05NotchWings: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let metrics = NotchScreenMetrics.current()
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let shoulder: CGFloat = 9
+        let earWidth: CGFloat = 54
+        let height: CGFloat = metrics.hasHardwareNotch ? metrics.menuBarHeight : 27
+        let rimColor = waiting
+            ? Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.62)
+            : Color.white.opacity(0.16)
+
+        Group {
+            if metrics.hasHardwareNotch {
+                // Hardware Notch MacBook: Left Ear + Exact Notch Cutout Bridge + Right Ear
+                HStack(spacing: 0) {
+                    // Left Ear (Active Sessions)
+                    HStack(spacing: 4) {
+                        BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: .cosmos, size: 11.5)
+                        Text("\(active)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(
+                                waiting
+                                    ? Color(red: 1.00, green: 0.84, blue: 0.32)
+                                    : (active > 0 ? Color(red: 0.76, green: 0.86, blue: 1.00) : Color.white.opacity(0.50))
+                            )
+                    }
+                    .frame(width: earWidth, height: height)
+
+                    // Center hardware camera cutout bridge (pure black behind physical notch)
+                    Color.clear
+                        .frame(width: metrics.notchWidth, height: height)
+
+                    // Right Ear (Completed Sessions)
+                    HStack(spacing: 3.5) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(Color(red: 0.28, green: 0.90, blue: 0.64))
+                        Text("\(done)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(done > 0 ? Color(red: 0.56, green: 0.96, blue: 0.76) : Color.white.opacity(0.46))
+                    }
+                    .scaleEffect(donePopScale)
+                    .frame(width: earWidth, height: height)
+                }
+                .padding(.horizontal, shoulder)
+                .frame(height: height)
+            } else {
+                // Non-Notch Display: Flush Menu-Bar Liquid Meniscus Dynamic Chin
+                HStack(spacing: 12) {
+                    HStack(spacing: 4.5) {
+                        BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: .cosmos, size: 11.5)
+                        Text("\(active)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(waiting ? Color(red: 1.00, green: 0.84, blue: 0.32) : Color(red: 0.76, green: 0.86, blue: 1.00))
+                    }
+                    Rectangle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(width: 1, height: 11)
+                    HStack(spacing: 3.5) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundColor(Color(red: 0.28, green: 0.90, blue: 0.64))
+                        Text("\(done)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(done > 0 ? Color(red: 0.56, green: 0.96, blue: 0.76) : Color.white.opacity(0.46))
+                    }
+                    .scaleEffect(donePopScale)
+                }
+                .padding(.horizontal, shoulder + 12)
+                .frame(height: height)
+            }
+        }
+        .background(Color.black)
+        .clipShape(NotchMeniscusShape(shoulderRadius: shoulder, bottomRadius: 12))
+        .overlay(
+            NotchMeniscusRimShape(shoulderRadius: shoulder, bottomRadius: 12)
+                .stroke(rimColor, lineWidth: 0.85)
+        )
+        .fixedSize()
+    }
+}
+
+/// 灵动岛 · 悬浮黑曜胶囊 (iPhone 16 Pro Dynamic Island Floating Pill)
+struct BeaconDynamicIslandPill: View {
+    @ObservedObject var vm: HudViewModel
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let accentBlue = Color(red: 0.51, green: 0.69, blue: 1.00)
+        let emeraldFg = Color(red: 0.36, green: 0.93, blue: 0.69)
+        let rimColor = waiting
+            ? Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.68)
+            : Color.white.opacity(0.20)
+
+        HStack(spacing: 10) {
+            // Left Island Zone: Star + Live Mini Equalizer Bars + Active Count
+            HStack(spacing: 5.5) {
+                BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: .cosmos, size: 12)
+
+                if active > 0 {
+                    TimelineView(.animation(minimumInterval: 1.0 / 18.0)) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        HStack(spacing: 2) {
+                            ForEach(0..<3, id: \.self) { i in
+                                let h = 4.5 + 7.5 * (0.5 + 0.5 * sin(t * 4.2 + Double(i) * 1.3))
+                                Capsule()
+                                    .fill(waiting ? Color(red: 1.00, green: 0.82, blue: 0.28) : accentBlue)
+                                    .frame(width: 2.2, height: CGFloat(h))
+                            }
+                        }
+                        .frame(height: 13)
+                    }
+                }
+
+                Text("\(active)")
+                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(active > 0 ? .white : Color.white.opacity(0.50))
+            }
+
+            // Center Dynamic Island Negative-Space Bridge (or Elapsed Timer)
+            if let s = vm.primarySession, active > 0 {
+                Text(s.primaryTimeBadge(now: vm.now))
+                    .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color.white.opacity(0.55))
+            } else {
+                Spacer(minLength: 10)
+                    .frame(width: 12)
+            }
+
+            // Right Island Zone: Emerald Completed Badge
+            HStack(spacing: 3) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8.5, weight: .heavy))
+                    .foregroundColor(emeraldFg)
+                Text("\(done)")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(done > 0 ? emeraldFg : Color.white.opacity(0.45))
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(Color(red: 0.08, green: 0.24, blue: 0.20).opacity(done > 0 ? 0.92 : 0.35))
+            .clipShape(Capsule())
+            .scaleEffect(donePopScale)
+        }
+        .padding(.leading, 11)
+        .padding(.trailing, 6)
+        .frame(height: 32)
+        .background(Color(red: 0.02, green: 0.03, blue: 0.05))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(rimColor, lineWidth: 0.95)
+        )
+        .fixedSize()
+    }
+}
+
+/// Hardware-Notch Expanded OLED Dynamic Island Panel (melts downward seamlessly from MacBook camera cutout).
+struct NotchExpandedIslandView: View {
+    @ObservedObject var vm: HudViewModel
+
+    var body: some View {
+        let metrics = NotchScreenMetrics.current()
+        let shoulder: CGFloat = 12
+        let bodyWidth: CGFloat = 376
+        let maxCount = max(1, min(8, vm.settings.maxSessionsShown))
+        let visibleSessions = Array(vm.sessions.prefix(maxCount))
+        let cStyle = vm.settings.resolvedCollapsedStyle
+
+        VStack(alignment: .leading, spacing: 0) {
+            if metrics.hasHardwareNotch {
+                let sideWidth = max(68, (bodyWidth - metrics.notchWidth) / 2.0)
+                HStack(spacing: 0) {
+                    // Left of physical camera notch
+                    HStack(spacing: 5) {
+                        BeaconMiniActiveGlyph(isActive: vm.activeCount > 0, isWaiting: vm.waitingCount > 0, theme: .cosmos, size: 11)
+                        Text(vm.activeCount > 0 ? "\(vm.activeCount) 活跃" : "全部就绪")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.90))
+                            .lineLimit(1)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.leading, 12)
+                    .frame(width: sideWidth, height: metrics.menuBarHeight)
+
+                    // Center physical camera housing cutout
+                    Color.clear
+                        .frame(width: metrics.notchWidth, height: metrics.menuBarHeight)
+
+                    // Right of physical camera notch
+                    HStack(spacing: 4) {
+                        Spacer(minLength: 0)
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            helpText: "切换收起态样式（当前：\(cStyle.displayName)）",
+                            action: { vm.updateSettings { $0.collapsedStyle = cStyle.nextStyle.rawValue } }
+                        ) {
+                            Image(systemName: cStyle.symbolName)
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            isActive: vm.settings.pinnedExpanded,
+                            helpText: vm.settings.pinnedExpanded ? "取消固定展开" : "固定展开灵动岛",
+                            action: { vm.updateSettings { $0.pinnedExpanded.toggle() } }
+                        ) {
+                            Image(systemName: vm.settings.pinnedExpanded ? "pin.fill" : "pin")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(vm.settings.pinnedExpanded ? .white : .white.opacity(0.75))
+                        }
+
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            helpText: "隐藏桌面浮窗",
+                            action: { vm.updateSettings { $0.visible = false } }
+                        ) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.65))
+                        }
+                    }
+                    .padding(.trailing, 10)
+                    .frame(width: sideWidth, height: metrics.menuBarHeight)
+                }
+                .padding(.bottom, 6)
+            } else {
+                // Non-Notch Display Top Header
+                HStack(spacing: 6) {
+                    Text("Antigravity")
+                        .font(.system(size: 12.5, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(vm.activeCount > 0 ? "\(vm.activeCount) 活跃" : "全部就绪")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color(red: 0.65, green: 0.78, blue: 1.00))
+                    Spacer()
+                    HStack(spacing: 4) {
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            helpText: "切换收起态样式（当前：\(cStyle.displayName)）",
+                            action: { vm.updateSettings { $0.collapsedStyle = cStyle.nextStyle.rawValue } }
+                        ) {
+                            Image(systemName: cStyle.symbolName)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            isActive: vm.settings.pinnedExpanded,
+                            helpText: vm.settings.pinnedExpanded ? "取消固定展开" : "固定展开灵动岛",
+                            action: { vm.updateSettings { $0.pinnedExpanded.toggle() } }
+                        ) {
+                            Image(systemName: vm.settings.pinnedExpanded ? "pin.fill" : "pin")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                        HudHeaderIconButton(
+                            theme: .cosmos,
+                            helpText: "隐藏桌面浮窗",
+                            action: { vm.updateSettings { $0.visible = false } }
+                        ) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.65))
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+            }
+
+            if visibleSessions.isEmpty {
+                HStack(spacing: 8) {
+                    FourPointStarShape()
+                        .fill(Color.white.opacity(0.5))
+                        .frame(width: 11, height: 11)
+                    Text("当前无活跃会话，新任务发起后将实时上岛")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.white.opacity(0.75))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+            } else {
+                VStack(spacing: 6.5) {
+                    ForEach(visibleSessions) { session in
+                        SessionCardRow(
+                            session: session,
+                            theme: .cosmos,
+                            styleMode: .classic,
+                            now: vm.now,
+                            pulseTick: vm.pulseTick,
+                            isJumping: vm.jumpingSessionId == session.id,
+                            onActivate: { vm.jumpToSession(session) },
+                            onDismiss: session.phase.isActive ? nil : { vm.dismissSession(session) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 11)
+                .padding(.bottom, vm.clearableCount > 0 ? 7 : 12)
+            }
+
+            if vm.clearableCount > 0 {
+                HStack {
+                    Spacer()
+                    Button(action: { vm.clearCompletedSessions() }) {
+                        Text("清理已完成 (\(vm.clearableCount))")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.80))
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 3.5)
+                            .background(Color.white.opacity(0.10))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
+            }
+        }
+        .frame(width: bodyWidth)
+        .padding(.horizontal, shoulder)
+        .background(Color.black)
+        .clipShape(NotchMeniscusShape(shoulderRadius: shoulder, bottomRadius: 22))
+        .overlay(
+            NotchMeniscusRimShape(shoulderRadius: shoulder, bottomRadius: 22)
+                .stroke(Color.white.opacity(0.16), lineWidth: 0.9)
+        )
+    }
+}
+
+/// E06 · 多槽服务器微刀片 (1 Vertical Fiber LED Bar = 1 Real Session)
+struct BeaconE06BladeRack: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    private enum SlotKind {
+        case waiting, running, done, empty
+    }
+
+    var body: some View {
+        let active = vm.activeCount
+        let waitCnt = vm.waitingCount
+        let runCnt = max(0, active - waitCnt)
+        let done = vm.clearableCount
+        let activeColor = theme.swatchColor
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.88, blue: 0.64)
+        let amberColor = theme.ringColor(for: .waiting)
+
+        let slots: [SlotKind] = {
+            var arr: [SlotKind] = []
+            arr.append(contentsOf: Array(repeating: .waiting, count: waitCnt))
+            arr.append(contentsOf: Array(repeating: .running, count: runCnt))
+            arr.append(contentsOf: Array(repeating: .done, count: done))
+            while arr.count < 5 { arr.append(.empty) }
+            return Array(arr.prefix(6))
+        }()
+
+        VStack(spacing: 4.5) {
+            HStack(alignment: .bottom, spacing: 5) {
+                ForEach(Array(slots.enumerated()), id: \.offset) { _, kind in
+                    switch kind {
+                    case .waiting:
+                        Capsule()
+                            .fill(amberColor)
+                            .frame(width: 5, height: 15)
+                            .opacity(vm.pulseTick ? 1.0 : 0.58)
+                    case .running:
+                        Capsule()
+                            .fill(activeColor)
+                            .frame(width: 5, height: 14)
+                            .opacity(vm.pulseTick ? 1.0 : 0.62)
+                    case .done:
+                        Capsule()
+                            .fill(emeraldColor)
+                            .frame(width: 5, height: 10.5)
+                    case .empty:
+                        Capsule()
+                            .fill(theme.primaryText.opacity(0.14))
+                            .frame(width: 5, height: 6.5)
+                    }
+                }
+            }
+            .frame(height: 15, alignment: .bottom)
+            .scaleEffect(donePopScale)
+
+            HStack(spacing: 6) {
+                Text("RUN \(active)")
+                    .foregroundColor(waitCnt > 0 ? theme.waitingTitleAccent : activeColor)
+                Text("OK \(done)")
+                    .foregroundColor(emeraldColor)
+            }
+            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .modifier(BeaconSurfaceModifier(
+            shape: RoundedRectangle(cornerRadius: 11, style: .continuous),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waitCnt > 0 ? .amber : .primary
+        ))
+        .fixedSize()
+    }
+}
+
+/// E07 · 双键客制化宏键盘 (2-Key Tactile Mechanical Macropad: Active Key + Done Key)
+struct BeaconE07MacroPad: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let elapsed = vm.primarySession?.primaryTimeBadge(now: vm.now) ?? "IDLE"
+
+        HStack(spacing: 4) {
+            // Key 1: Active Blue/Amber Switch
+            VStack(spacing: 1.5) {
+                HStack(spacing: 2.5) {
+                    BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: .cosmos, size: 9.5)
+                    Text("\(active)")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundColor(.white)
+                }
+                Text(active > 0 ? elapsed : "IDLE")
+                    .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                    .foregroundColor(Color(red: 0.76, green: 0.84, blue: 1.00).opacity(0.80))
+                    .lineLimit(1)
+            }
+            .frame(width: 37, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(waiting ? Color(red: 0.28, green: 0.18, blue: 0.06) : Color(red: 0.09, green: 0.12, blue: 0.23))
+                    .shadow(color: .black.opacity(0.65), radius: 0, x: 0, y: 2)
             )
-            .padding(.top, 1.5)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(
+                        waiting ? Color(red: 0.99, green: 0.78, blue: 0.24).opacity(0.55) : Color(red: 0.62, green: 0.72, blue: 1.00).opacity(0.38),
+                        lineWidth: 0.9
+                    )
+            )
+
+            // Key 2: Completed Emerald Switch
+            VStack(spacing: 1.5) {
+                HStack(spacing: 2) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8.5, weight: .heavy))
+                        .foregroundColor(Color(red: 0.30, green: 0.88, blue: 0.64))
+                    Text("\(done)")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundColor(Color(red: 0.85, green: 0.99, blue: 0.92))
+                }
+                Text("DONE")
+                    .font(.system(size: 7.5, weight: .semibold, design: .monospaced))
+                    .foregroundColor(Color(red: 0.45, green: 0.90, blue: 0.70).opacity(0.80))
+            }
+            .frame(width: 37, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(red: 0.06, green: 0.18, blue: 0.16))
+                    .shadow(color: .black.opacity(0.65), radius: 0, x: 0, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color(red: 0.26, green: 0.85, blue: 0.60).opacity(0.45), lineWidth: 0.9)
+            )
+            .scaleEffect(donePopScale)
+        }
+        .padding(4.5)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.28, green: 0.32, blue: 0.40), Color(red: 0.11, green: 0.13, blue: 0.19)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .shadow(color: Color(red: 0.08, green: 0.10, blue: 0.15), radius: 0, x: 0, y: 3)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.9)
+        )
+        .fixedSize()
+    }
+}
+
+/// E08 · 内扫外锚双区声呐 (Inner Ripple Sonar Blips + Outer Emerald Progress Bezel)
+struct BeaconE08SonarScope: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let total = max(1, active + done)
+        let doneRatio = CGFloat(done) / CGFloat(total)
+        let activeColor = waiting ? theme.ringColor(for: .waiting) : theme.swatchColor
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.88, blue: 0.64)
+
+        ZStack {
+            // Outer emerald bezel arc
+            Circle()
+                .stroke(theme.primaryText.opacity(0.12), lineWidth: 2.4)
+                .padding(3)
+            Circle()
+                .trim(from: 0, to: doneRatio)
+                .stroke(emeraldColor, style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .padding(3)
+                .scaleEffect(donePopScale)
+
+            // Inner expanding sonar ripple + target blips
+            if active > 0 {
+                TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                    let p = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2.2) / 2.2
+                    Circle()
+                        .stroke(activeColor.opacity(1.0 - p), lineWidth: 1.2)
+                        .frame(width: 10 + 30 * p, height: 10 + 30 * p)
+                }
+
+                Circle()
+                    .fill(activeColor)
+                    .frame(width: 5, height: 5)
+                    .shadow(color: activeColor, radius: 3)
+                    .offset(x: 9, y: -9)
+
+                if active >= 2 {
+                    Circle()
+                        .fill(activeColor.opacity(0.85))
+                        .frame(width: 4.5, height: 4.5)
+                        .offset(x: -10, y: -6)
+                }
+            }
+
+            // Compact dual readout pill
+            HStack(spacing: 2) {
+                Text("\(active)")
+                    .foregroundColor(active > 0 ? activeColor : theme.tertiaryText)
+                Text("/")
+                    .foregroundColor(theme.tertiaryText.opacity(0.6))
+                Text("\(done)✓")
+                    .foregroundColor(emeraldColor)
+            }
+            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Color.black.opacity(theme.isLight ? 0.08 : 0.45))
+            .clipShape(Capsule())
+            .offset(y: 6)
+        }
+        .frame(width: 54, height: 54)
+        .modifier(BeaconSurfaceModifier(
+            shape: Circle(),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waiting ? .amber : .primary
+        ))
+    }
+}
+
+/// E09 · S10 无框悬浮星珠簇 (Levitating Orb + Independent Active & Completed Micro Pills)
+struct BeaconE09BeadCluster: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    var body: some View {
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let emeraldFg = theme.isLight ? Color(red: 0.05, green: 0.48, blue: 0.38) : Color(red: 0.43, green: 0.93, blue: 0.72)
+
+        HStack(spacing: 5) {
+            ZStack {
+                if active > 0 || waiting {
+                    BeaconMiniActiveGlyph(isActive: true, isWaiting: waiting, theme: theme, size: 13.5)
+                } else {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(emeraldFg)
+                }
+            }
+            .frame(width: 34, height: 34)
+            .modifier(BeaconSurfaceModifier(
+                shape: Circle(),
+                theme: theme,
+                styleMode: styleMode,
+                blurAlpha: blurAlpha,
+                tintAlpha: tintAlpha,
+                variant: waiting ? .amber : .primary
+            ))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("✦ \(active)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(waiting ? theme.waitingTitleAccent : theme.swatchColor)
+                    .padding(.horizontal, 6.5)
+                    .padding(.vertical, 1.5)
+                    .modifier(BeaconSurfaceModifier(
+                        shape: Capsule(),
+                        theme: theme,
+                        styleMode: styleMode,
+                        blurAlpha: blurAlpha,
+                        tintAlpha: tintAlpha,
+                        variant: waiting ? .amber : .primary
+                    ))
+
+                Text("✓ \(done)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(emeraldFg)
+                    .padding(.horizontal, 6.5)
+                    .padding(.vertical, 1.5)
+                    .modifier(BeaconSurfaceModifier(
+                        shape: Capsule(),
+                        theme: theme,
+                        styleMode: styleMode,
+                        blurAlpha: blurAlpha,
+                        tintAlpha: tintAlpha,
+                        variant: .emerald
+                    ))
+                    .scaleEffect(donePopScale)
+            }
+        }
+        .fixedSize()
+    }
+}
+
+/// E10 · 双色天平能量尺 (100pt Compact Telemetry Bar + Blue-to-Green Segmented Ledger)
+struct BeaconE10LedgerBar: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let donePopScale: CGFloat
+
+    private enum SegKind {
+        case waiting, running, done, empty
+    }
+
+    var body: some View {
+        let active = vm.activeCount
+        let waitCnt = vm.waitingCount
+        let runCnt = max(0, active - waitCnt)
+        let done = vm.clearableCount
+        let activeColor = theme.swatchColor
+        let emeraldColor = theme.isLight ? Color(red: 0.06, green: 0.54, blue: 0.42) : Color(red: 0.25, green: 0.88, blue: 0.64)
+        let amberColor = theme.ringColor(for: .waiting)
+
+        let segs: [SegKind] = {
+            var arr: [SegKind] = []
+            arr.append(contentsOf: Array(repeating: .waiting, count: waitCnt))
+            arr.append(contentsOf: Array(repeating: .running, count: runCnt))
+            arr.append(contentsOf: Array(repeating: .done, count: done))
+            if arr.isEmpty { arr.append(.empty) }
+            return Array(arr.prefix(7))
+        }()
+
+        VStack(spacing: 4.5) {
+            HStack(spacing: 4) {
+                HStack(spacing: 3) {
+                    BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waitCnt > 0, theme: theme, size: 9.5)
+                    Text("\(active) 进行")
+                        .foregroundColor(waitCnt > 0 ? theme.waitingTitleAccent : theme.primaryText)
+                }
+                Spacer(minLength: 4)
+                Text("\(done)✓")
+                    .foregroundColor(emeraldColor)
+                    .scaleEffect(donePopScale)
+            }
+            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+
+            HStack(spacing: 3) {
+                ForEach(Array(segs.enumerated()), id: \.offset) { _, seg in
+                    switch seg {
+                    case .waiting:
+                        Capsule()
+                            .fill(amberColor)
+                            .opacity(vm.pulseTick ? 1.0 : 0.55)
+                    case .running:
+                        Capsule()
+                            .fill(activeColor)
+                            .opacity(vm.pulseTick ? 1.0 : 0.60)
+                    case .done:
+                        Capsule()
+                            .fill(emeraldColor)
+                    case .empty:
+                        Capsule()
+                            .fill(theme.primaryText.opacity(0.16))
+                    }
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 9.5)
+        .padding(.vertical, 6.5)
+        .frame(width: 104)
+        .modifier(BeaconSurfaceModifier(
+            shape: RoundedRectangle(cornerRadius: 11, style: .continuous),
+            theme: theme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            variant: waitCnt > 0 ? .amber : .primary
+        ))
+    }
+}
+
+/// Unified Collapsed Beacon Dispatcher (E01 ~ E10 + Classic Wide Capsule)
+struct CollapsedBeaconDispatcherView: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let styleMode: HudStyleMode
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let needsAttention: Bool
+    let attentionColor: Color
+
+    @State private var donePopScale: CGFloat = 1.0
+
+    var body: some View {
+        let collapsedStyle = vm.settings.resolvedCollapsedStyle
+
+        Group {
+            switch collapsedStyle {
+            case .e01:
+                BeaconE01TwinPods(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e02:
+                BeaconE02DualRingWatch(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e03:
+                BeaconE03HourglassTotem(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e04:
+                BeaconE04GalaxyOrb(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e05:
+                BeaconE05NotchWings(vm: vm, theme: theme, donePopScale: donePopScale)
+            case .island:
+                BeaconDynamicIslandPill(vm: vm, donePopScale: donePopScale)
+            case .e06:
+                BeaconE06BladeRack(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e07:
+                BeaconE07MacroPad(vm: vm, theme: theme, donePopScale: donePopScale)
+            case .e08:
+                BeaconE08SonarScope(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e09:
+                BeaconE09BeadCluster(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .e10:
+                BeaconE10LedgerBar(vm: vm, theme: theme, styleMode: styleMode, blurAlpha: blurAlpha, tintAlpha: tintAlpha, donePopScale: donePopScale)
+            case .capsule:
+                CollapsedCapsuleView(vm: vm, theme: theme, styleMode: styleMode)
+                    .modifier(BeaconSurfaceModifier(
+                        shape: RoundedRectangle(cornerRadius: 24, style: .continuous),
+                        theme: theme,
+                        styleMode: styleMode,
+                        blurAlpha: blurAlpha,
+                        tintAlpha: tintAlpha,
+                        variant: needsAttention ? .amber : .primary
+                    ))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let s = vm.primarySession {
+                vm.jumpToSession(s)
+            } else {
+                vm.activateAntigravity()
+            }
+        }
+        .onChange(of: vm.clearableCount) { oldCount, newCount in
+            if newCount > oldCount {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.52)) {
+                    donePopScale = 1.18
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        donePopScale = 1.0
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Expanded Container Envelope (dispatches S10 Frameless vs Classic/S6 Aurora).
+struct ExpandedEnvelopeView: View {
+    @ObservedObject var vm: HudViewModel
+    let styleMode: HudStyleMode
+    let effectiveTheme: HudTheme
+    let normOp: Double
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let needsAttention: Bool
+    let attentionColor: Color
+
+    var body: some View {
+        let collapsedStyle = vm.settings.resolvedCollapsedStyle
+
+        if collapsedStyle == .e05 {
+            NotchExpandedIslandView(vm: vm)
+        } else if collapsedStyle == .island {
+            // Pure OLED Black Dynamic Island Expanded Card
+            ExpandedHudView(vm: vm, theme: .cosmos, styleMode: .classic)
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color(red: 0.03, green: 0.04, blue: 0.07))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(
+                            needsAttention
+                                ? attentionColor.opacity(0.75)
+                                : Color.white.opacity(0.18),
+                            lineWidth: 1.0
+                        )
+                )
+        } else if styleMode == .frameless {
+            FramelessExpandedHudView(
+                vm: vm,
+                theme: effectiveTheme,
+                blurAlpha: blurAlpha,
+                tintAlpha: tintAlpha
+            )
+        } else {
+            let cornerRadius: CGFloat = (styleMode == .aurora) ? 20 : 18
+
+            ExpandedHudView(vm: vm, theme: effectiveTheme, styleMode: styleMode)
+                .background(
+                    ZStack {
+                        VisualEffectBlur(
+                            material: .popover,
+                            blendingMode: .behindWindow,
+                            alpha: CGFloat(blurAlpha),
+                            appearanceName: effectiveTheme.isLight ? .aqua : .darkAqua
+                        )
+
+                        if styleMode == .aurora {
+                            LivingAuroraMeshView(isAnimating: vm.activeCount > 0)
+                                .opacity(0.68 + 0.26 * normOp)
+                        } else {
+                            LinearGradient(
+                                colors: effectiveTheme.glassGradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .opacity(tintAlpha)
+
+                            RadialGradient(
+                                colors: [
+                                    effectiveTheme.swatchColor.opacity(effectiveTheme.isLight ? 0.16 : 0.13),
+                                    Color.clear,
+                                ],
+                                center: .topLeading,
+                                startRadius: 6,
+                                endRadius: 210
+                            )
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            needsAttention
+                                ? LinearGradient(
+                                    colors: [attentionColor.opacity(0.82), attentionColor.opacity(0.28)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: styleMode == .aurora
+                                        ? [Color.white.opacity(0.32), Color(red: 0.43, green: 0.91, blue: 0.72).opacity(0.20)]
+                                        : effectiveTheme.outerBorderColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                            lineWidth: needsAttention ? 1.2 : 1.0
+                        )
+                )
         }
     }
 }
@@ -2184,145 +4280,221 @@ struct HudRootView: View {
     @ObservedObject var vm: HudViewModel
 
     var body: some View {
-        let cornerRadius: CGFloat = vm.isExpanded ? 20 : 22
+        let styleMode = vm.settings.resolvedStyleMode
+        let baseTheme = vm.settings.resolvedTheme
+        let effectiveTheme: HudTheme = (styleMode == .aurora) ? .cosmos : baseTheme
+        let morph = vm.settings.resolvedHoverMorph
+        let collapsedStyle = vm.settings.resolvedCollapsedStyle
+
         let clampedOp = vm.settings.clampedOpacity
         let normOp = max(0.0, min(1.0, (clampedOp - HudSettings.minOpacity) / (HudSettings.maxOpacity - HudSettings.minOpacity)))
-        let blurAlpha = 0.28 + 0.72 * normOp
-        let tintAlpha = 0.44 + 0.42 * normOp
+        let blurAlpha = 0.45 + 0.55 * normOp
+        let tintAlpha = effectiveTheme.isLight ? (0.56 + 0.34 * normOp) : (0.52 + 0.38 * normOp)
 
-        let borderHighlightColor: Color = {
-            if let banner = vm.flashBanner {
-                return banner.color.opacity(0.92)
-            }
-            if let primary = vm.primarySession, primary.phase.isActive {
-                return primary.phase.accentColor.opacity(vm.pulseTick ? 0.58 : 0.30)
-            }
-            return Color.white.opacity(0.15)
-        }()
+        let needsAttention = vm.flashBanner != nil || vm.primarySession?.phase == .waiting
+        let attentionColor = vm.flashBanner?.color ?? effectiveTheme.ringColor(for: .waiting)
 
-        VStack(alignment: .leading, spacing: 0) {
-            if vm.isExpanded {
-                ExpandedHudView(vm: vm)
+        let visualOpen = vm.isExpanded
+        let canvasOpen = vm.effectiveCanvasExpanded
+        let unitAnchor = vm.anchorUnitPoint
+        let flushMenuTop = (collapsedStyle == .e05 && !vm.isBottomAnchored)
+        let topPad: CGFloat = flushMenuTop ? 0 : 6
+
+        let beacon = CollapsedBeaconDispatcherView(
+            vm: vm,
+            theme: effectiveTheme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            needsAttention: needsAttention,
+            attentionColor: attentionColor
+        )
+
+        if !canvasOpen {
+            beacon
+                .scaleEffect(vm.isHoverArming ? 1.07 : 1.0, anchor: unitAnchor)
+                .opacity(vm.isAllIdleForLong ? 0.78 : 1.0)
+                .padding(.top, topPad)
+                .padding([.leading, .trailing, .bottom], 6)
+        } else {
+            let expanded = ExpandedEnvelopeView(
+                vm: vm,
+                styleMode: styleMode,
+                effectiveTheme: effectiveTheme,
+                normOp: normOp,
+                blurAlpha: blurAlpha,
+                tintAlpha: tintAlpha,
+                needsAttention: needsAttention,
+                attentionColor: attentionColor
+            )
+
+            if morph == .m2 && !vm.settings.pinnedExpanded && collapsedStyle != .e05 && collapsedStyle != .island {
+                // M2 · Beacon Stay + Detached Drawer (Beacon remains stationary in corner!)
+                VStack(alignment: vm.horizontalAlignment, spacing: 7) {
+                    if vm.isBottomAnchored {
+                        expanded
+                            .opacity(visualOpen ? 1.0 : 0.0)
+                            .scaleEffect(visualOpen ? 1.0 : 0.94, anchor: unitAnchor)
+                            .offset(y: visualOpen ? 0 : 8)
+                            .allowsHitTesting(visualOpen)
+
+                        beacon
+                            .scaleEffect(visualOpen ? 1.03 : 1.0, anchor: unitAnchor)
+                    } else {
+                        beacon
+                            .scaleEffect(visualOpen ? 1.03 : 1.0, anchor: unitAnchor)
+
+                        expanded
+                            .opacity(visualOpen ? 1.0 : 0.0)
+                            .scaleEffect(visualOpen ? 1.0 : 0.94, anchor: unitAnchor)
+                            .offset(y: visualOpen ? 0 : -8)
+                            .allowsHitTesting(visualOpen)
+                    }
+                }
+                .padding(.top, topPad)
+                .padding([.leading, .trailing, .bottom], 6)
             } else {
-                CollapsedCapsuleView(vm: vm)
+                // M1 / M3 / M4 · Corner-Locked Zero-Jump Morph inside Fixed Anchor ZStack
+                let expScale: CGFloat = {
+                    if visualOpen { return 1.0 }
+                    switch morph {
+                    case .m1: return 0.26
+                    case .m3: return 0.36
+                    case .m4, .m2: return 0.94
+                    }
+                }()
+                let bcnScale: CGFloat = {
+                    if !visualOpen { return 1.0 }
+                    switch morph {
+                    case .m1: return 1.22
+                    case .m3: return 1.12
+                    case .m4, .m2: return 0.86
+                    }
+                }()
+
+                ZStack(alignment: vm.anchorAlignment) {
+                    expanded
+                        .scaleEffect(expScale, anchor: unitAnchor)
+                        .blur(radius: (morph == .m4 && !visualOpen) ? 8 : 0)
+                        .opacity(visualOpen ? 1.0 : 0.0)
+                        .allowsHitTesting(visualOpen)
+
+                    beacon
+                        .scaleEffect(bcnScale, anchor: unitAnchor)
+                        .blur(radius: (morph == .m4 && visualOpen) ? 6 : 0)
+                        .opacity(visualOpen ? 0.0 : 1.0)
+                        .allowsHitTesting(!visualOpen)
+                }
+                .padding(.top, topPad)
+                .padding([.leading, .trailing, .bottom], 6)
             }
         }
-        .background(
-            ZStack {
-                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow, alpha: CGFloat(blurAlpha))
-                Color(red: 0.05, green: 0.07, blue: 0.12)
-                    .opacity(tintAlpha)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(borderHighlightColor, lineWidth: vm.flashBanner != nil ? 1.8 : 1.1)
-        )
-        .padding(6)
     }
 }
 
 struct CollapsedCapsuleView: View {
     @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    var styleMode: HudStyleMode = .classic
 
     var body: some View {
         let primary = vm.primarySession
-        let phase = primary?.phase ?? .idle
 
-        VStack(spacing: 0) {
+        ZStack {
+            if let s = primary, s.phase.isActive, styleMode != .aurora {
+                GlassProgressWash(session: s, theme: theme)
+            }
+
             HStack(spacing: 9) {
-                ZStack {
-                    Circle()
-                        .fill(phase.accentColor.opacity(phase.isActive ? (vm.pulseTick ? 0.34 : 0.14) : 0.18))
-                        .frame(width: 24, height: 24)
-                    Image(systemName: phase.symbolName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(phase.accentColor)
+                if let s = primary {
+                    SessionStatusGlyph(phase: s.phase, theme: theme, styleMode: styleMode, pulseTick: vm.pulseTick)
+                } else {
+                    FourPointStarShape()
+                        .fill(theme.tertiaryText.opacity(0.60))
+                        .frame(width: 11, height: 11)
                 }
 
                 if let banner = vm.flashBanner {
                     Text(banner.message)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(banner.color)
+                        .foregroundColor(theme.primaryText)
                         .lineLimit(1)
                         .truncationMode(.tail)
                     Spacer(minLength: 4)
                 } else if let s = primary {
-                    VStack(alignment: .leading, spacing: 1.5) {
-                        HStack(spacing: 5) {
+                    let subtitle: String = {
+                        if s.phase.isActive {
+                            if let ts = s.taskStats, !ts.currentItem.isEmpty, s.phase == .thinking {
+                                return ts.currentItem
+                            }
+                            return s.detailText.isEmpty ? s.phase.badgeText : s.detailText
+                        }
+                        if !s.workspaceName.isEmpty {
+                            return "\(s.workspaceName) · \(s.phase.badgeText)"
+                        }
+                        return s.phase.badgeText
+                    }()
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
                             Text(s.primaryTitle)
-                                .font(.system(size: 11.5, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.96))
+                                .font(.system(size: 12.5, weight: .semibold))
+                                .foregroundColor(theme.primaryText)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                            Text(s.phase.badgeText)
-                                .font(.system(size: 9.5, weight: .bold))
-                                .foregroundColor(s.phase.accentColor)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(s.phase.accentColor.opacity(0.16))
-                                .clipShape(Capsule())
-                                .fixedSize()
+
+                            Spacer(minLength: 4)
+
+                            if s.phase == .waiting {
+                                Text("待确认")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(theme.waitingTitleAccent)
+                                    .fixedSize()
+                            } else if s.phase.isActive {
+                                StageMilestoneCapsules(session: s, theme: theme, styleMode: styleMode, pulseTick: vm.pulseTick)
+                                    .fixedSize()
+                            }
                         }
-                        Text(s.workspaceName.isEmpty ? s.detailText : "\(s.workspaceName) · \(s.detailText)")
-                            .font(.system(size: 10.5))
-                            .foregroundColor(.white.opacity(0.68))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+
+                        HStack(spacing: 6) {
+                            Text(subtitle)
+                                .font(.system(size: 10.5))
+                                .foregroundColor(s.phase == .waiting ? theme.waitingDetailColor : theme.secondaryText)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+
+                            Spacer(minLength: 4)
+
+                            HStack(spacing: 5) {
+                                if vm.activeCount > 1 {
+                                    Text("+\(vm.activeCount - 1)")
+                                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(theme.primaryText)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background(theme.controlBg)
+                                        .clipShape(Capsule())
+                                }
+
+                                Text(s.primaryTimeBadge(now: vm.now))
+                                    .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                    .foregroundColor(theme.tertiaryText)
+                            }
+                            .fixedSize()
+                        }
                     }
-
-                    Spacer(minLength: 4)
-
-                    if let ts = s.taskStats {
-                        Text("\(ts.done)/\(ts.total) · \(ts.percent)%")
-                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                            .foregroundColor(Color(red: 0.24, green: 0.86, blue: 0.68))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2.5)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(Capsule())
-                    } else if vm.activeCount > 1 {
-                        Text("\(vm.activeCount) 活跃")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(Color(red: 0.45, green: 0.74, blue: 1.0))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2.5)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(Capsule())
-                    }
-
-                    Text(s.primaryTimeBadge(now: vm.now))
-                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.64))
                 } else {
-                    Text("AGY HUD · 暂无活跃会话")
-                        .font(.system(size: 11.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.68))
+                    Text("Antigravity · 待命")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(theme.secondaryText)
                     Spacer(minLength: 4)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 7)
-            .padding(.bottom, (primary?.phase.isActive == true) ? 5 : 7)
-
-            if let s = primary, s.phase.isActive {
-                ObsidianLaserBar(
-                    progressClosure: { now in s.estimatedProgress(at: now) },
-                    colors: s.taskStats != nil
-                        ? [Color(red: 0.22, green: 0.74, blue: 0.98), Color(red: 0.16, green: 0.86, blue: 0.84), Color(red: 0.20, green: 0.85, blue: 0.62)]
-                        : s.phase.progressGradientColors,
-                    glow: s.taskStats != nil
-                        ? Color(red: 0.20, green: 0.85, blue: 0.62)
-                        : s.phase.progressGlowColor,
-                    height: 2.8,
-                    isPaused: s.phase == .waiting
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 5.5)
-            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
         }
-        .frame(width: 344)
+        .frame(width: 316)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .contentShape(Rectangle())
         .onTapGesture {
             if let s = primary {
@@ -2334,184 +4506,411 @@ struct CollapsedCapsuleView: View {
     }
 }
 
-struct ExpandedHudView: View {
-    @ObservedObject var vm: HudViewModel
+struct HudHeaderIconButton<Content: View>: View {
+    let theme: HudTheme
+    var isActive: Bool = false
+    let helpText: String
+    let action: () -> Void
+    @ViewBuilder let label: () -> Content
+    @State private var isHovered: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(vm.activeCount > 0 ? Color(red: 0.35, green: 0.68, blue: 1.0) : Color(red: 0.20, green: 0.84, blue: 0.60))
-                    .frame(width: 8, height: 8)
-
-                Text("AGY 实时会话进度")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white.opacity(0.95))
-
-                Text(vm.activeCount > 0 ? "\(vm.activeCount) 运行中" : "全部就绪")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.65))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(Capsule())
-
-                Spacer()
-
-                let opacityPct = Int(round(vm.settings.clampedOpacity * 100.0))
-
-                Button(action: {
-                    vm.toggleOpacityBar()
-                }) {
-                    Image(systemName: "circle.lefthalf.filled")
-                        .font(.system(size: 11))
-                        .foregroundColor(
-                            vm.isOpacityBarOpen
-                                ? Color(red: 0.35, green: 0.68, blue: 1.0)
-                                : (opacityPct < 90 ? Color(red: 0.48, green: 0.78, blue: 1.0) : .white.opacity(0.75))
-                        )
-                        .frame(width: 22, height: 22)
-                        .background(Color.white.opacity(vm.isOpacityBarOpen ? 0.16 : 0.07))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help("调节悬浮窗透明度（当前不透明度 \(opacityPct)%）")
-
-                Button(action: {
-                    vm.updateSettings { $0.soundEnabled.toggle() }
-                }) {
-                    Image(systemName: vm.settings.soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(vm.settings.soundEnabled ? .white.opacity(0.85) : .white.opacity(0.4))
-                        .frame(width: 22, height: 22)
-                        .background(Color.white.opacity(0.07))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help(vm.settings.soundEnabled ? "已开启完成与确认提示音" : "提示音已静音")
-
-                Button(action: {
-                    vm.updateSettings { $0.pinnedExpanded.toggle() }
-                }) {
-                    Image(systemName: vm.settings.pinnedExpanded ? "pin.fill" : "pin")
-                        .font(.system(size: 11))
-                        .foregroundColor(vm.settings.pinnedExpanded ? Color(red: 0.35, green: 0.68, blue: 1.0) : .white.opacity(0.6))
-                        .frame(width: 22, height: 22)
-                        .background(Color.white.opacity(vm.settings.pinnedExpanded ? 0.16 : 0.07))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help(vm.settings.pinnedExpanded ? "取消固定展开" : "固定展开多会话面板")
-
-                Button(action: {
-                    vm.updateSettings { $0.visible = false }
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white.opacity(0.55))
-                        .frame(width: 22, height: 22)
-                        .background(Color.white.opacity(0.07))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help("暂时隐藏桌面浮窗（可从顶部菜单栏重新显示）")
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-
-            if vm.isOpacityBarOpen {
-                let pct = Int(round(vm.settings.clampedOpacity * 100.0))
-                let presets: [Int] = [35, 65, 94]
-                HStack(spacing: 7) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "circle.dotted")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.58))
-                        Text("不透明度")
-                            .font(.system(size: 10.5, weight: .medium))
-                            .foregroundColor(.white.opacity(0.78))
-                            .fixedSize()
-                    }
-
-                    HudOpacityScrubber(value: vm.settings.clampedOpacity) { nextVal, isFinal in
-                        vm.setOpacity(nextVal, persistImmediately: isFinal)
-                    }
-                    .frame(height: 20)
-
-                    HStack(spacing: 3.5) {
-                        ForEach(presets, id: \.self) { p in
-                            let isCurrent = abs(pct - p) <= 2
-                            Button(action: {
-                                vm.setOpacity(Double(p) / 100.0, persistImmediately: true)
-                            }) {
-                                Text("\(p)%")
-                                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(isCurrent ? Color(red: 0.88, green: 0.96, blue: 1.0) : .white.opacity(0.58))
-                                    .padding(.horizontal, 5.5)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        Capsule()
-                                            .fill(isCurrent ? Color(red: 0.22, green: 0.74, blue: 0.98).opacity(0.28) : Color.white.opacity(0.07))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    Text("\(pct)%")
-                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color(red: 0.35, green: 0.78, blue: 1.0))
-                        .frame(width: 34, alignment: .trailing)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5.5)
+        Button(action: action) {
+            label()
+                .frame(width: 22, height: 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.055))
+                    isActive
+                        ? theme.controlActiveBg
+                        : (isHovered ? theme.controlActiveBg.opacity(0.75) : theme.controlBg)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.7)
-                )
-                .padding(.horizontal, 10)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovering
             }
+        }
+        .help(helpText)
+    }
+}
 
+/// S10 · Frameless Levitating Stack (each session floats independently over transparent desktop air).
+struct FramelessExpandedHudView: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    let blurAlpha: Double
+    let tintAlpha: Double
+
+    var body: some View {
+        let maxCount = max(1, min(8, vm.settings.maxSessionsShown))
+        let visibleSessions = Array(vm.sessions.prefix(maxCount))
+
+        VStack(alignment: .trailing, spacing: 8) {
+            // 1. Self-contained floating top-right control pill
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(vm.activeCount > 0 ? theme.swatchColor : theme.doneCheckFg)
+                    .frame(width: 6.5, height: 6.5)
+
+                Text(vm.activeCount > 0 ? "\(vm.activeCount) 活跃" : "全部就绪")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(theme.primaryText)
+
+                HStack(spacing: 3) {
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "切换主题风格（当前：S10 无框悬浮，点击切换回经典毛玻璃）",
+                        action: { vm.updateSettings { $0.styleMode = HudStyleMode.frameless.nextStyle.rawValue } }
+                    ) {
+                        Image(systemName: HudStyleMode.frameless.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                    }
+
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "切换色彩基底（当前：\(theme.displayName)）",
+                        action: { vm.updateSettings { $0.theme = theme.nextTheme.rawValue } }
+                    ) {
+                        Circle()
+                            .fill(theme.swatchColor)
+                            .overlay(
+                                Circle().strokeBorder(theme.primaryText.opacity(0.32), lineWidth: 0.7)
+                            )
+                            .frame(width: 8.5, height: 8.5)
+                    }
+
+                    let cStyle = vm.settings.resolvedCollapsedStyle
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "切换收起态样式（当前：\(cStyle.displayName)，移开鼠标即可预览）",
+                        action: { vm.updateSettings { $0.collapsedStyle = cStyle.nextStyle.rawValue } }
+                    ) {
+                        Image(systemName: cStyle.symbolName)
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+
+                    HudHeaderIconButton(
+                        theme: theme,
+                        isActive: vm.settings.pinnedExpanded,
+                        helpText: vm.settings.pinnedExpanded ? "取消固定展开" : "固定展开面板",
+                        action: { vm.updateSettings { $0.pinnedExpanded.toggle() } }
+                    ) {
+                        Image(systemName: vm.settings.pinnedExpanded ? "pin.fill" : "pin")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(vm.settings.pinnedExpanded ? theme.primaryText : theme.secondaryText)
+                    }
+
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "隐藏桌面浮窗",
+                        action: { vm.updateSettings { $0.visible = false } }
+                    ) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundColor(theme.tertiaryText)
+                    }
+                }
+            }
+            .padding(.leading, 11)
+            .padding(.trailing, 6)
+            .padding(.vertical, 5)
+            .background(
+                ZStack {
+                    VisualEffectBlur(
+                        material: .popover,
+                        blendingMode: .behindWindow,
+                        alpha: CGFloat(blurAlpha),
+                        appearanceName: theme.isLight ? .aqua : .darkAqua
+                    )
+                    LinearGradient(
+                        colors: theme.glassGradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .opacity(tintAlpha)
+                }
+                .clipShape(Capsule())
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: theme.outerBorderColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.0
+                    )
+            )
+
+            // 2. Standalone Flash Banner Pill (if active)
             if let banner = vm.flashBanner {
                 HStack(spacing: 6) {
                     Text(banner.message)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(banner.color)
+                        .foregroundColor(theme.primaryText)
+                        .lineLimit(1)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(width: 332)
+                .background(
+                    ZStack {
+                        VisualEffectBlur(
+                            material: .popover,
+                            blendingMode: .behindWindow,
+                            alpha: CGFloat(blurAlpha),
+                            appearanceName: theme.isLight ? .aqua : .darkAqua
+                        )
+                        banner.color.opacity(0.26)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(banner.color.opacity(0.55), lineWidth: 1.0)
+                )
+            }
+
+            // 3. Independent Levitating Session Capsules
+            if visibleSessions.isEmpty {
+                HStack(spacing: 8) {
+                    FourPointStarShape()
+                        .fill(theme.tertiaryText.opacity(0.6))
+                        .frame(width: 11, height: 11)
+                    Text("当前无活跃会话，新任务发起后自动同步")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(theme.secondaryText)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(width: 332)
+                .background(
+                    ZStack {
+                        VisualEffectBlur(
+                            material: .popover,
+                            blendingMode: .behindWindow,
+                            alpha: CGFloat(blurAlpha),
+                            appearanceName: theme.isLight ? .aqua : .darkAqua
+                        )
+                        LinearGradient(
+                            colors: theme.glassGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .opacity(tintAlpha)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: theme.outerBorderColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.0
+                        )
+                )
+            } else {
+                ForEach(visibleSessions) { session in
+                    SessionCardRow(
+                        session: session,
+                        theme: theme,
+                        styleMode: .frameless,
+                        isStandaloneFloating: true,
+                        blurAlpha: blurAlpha,
+                        tintAlpha: tintAlpha,
+                        now: vm.now,
+                        pulseTick: vm.pulseTick,
+                        isJumping: vm.jumpingSessionId == session.id,
+                        onActivate: { vm.jumpToSession(session) },
+                        onDismiss: session.phase.isActive ? nil : { vm.dismissSession(session) }
+                    )
+                    .frame(width: 332)
+                }
+            }
+
+            // 4. Standalone Clear Pill
+            if vm.clearableCount > 0 {
+                Button(action: {
+                    vm.clearCompletedSessions()
+                }) {
+                    Text("清理已完成 (\(vm.clearableCount))")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundColor(theme.secondaryText)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 5)
+                        .background(
+                            ZStack {
+                                VisualEffectBlur(
+                                    material: .popover,
+                                    blendingMode: .behindWindow,
+                                    alpha: CGFloat(blurAlpha),
+                                    appearanceName: theme.isLight ? .aqua : .darkAqua
+                                )
+                                LinearGradient(
+                                    colors: theme.glassGradientColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .opacity(tintAlpha)
+                            }
+                            .clipShape(Capsule())
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: theme.outerBorderColors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 0.9
+                                )
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("一键清理所有已完成或已停止的会话记录")
+            }
+        }
+        .frame(width: 332)
+    }
+}
+
+struct ExpandedHudView: View {
+    @ObservedObject var vm: HudViewModel
+    let theme: HudTheme
+    var styleMode: HudStyleMode = .classic
+
+    var body: some View {
+        let maxCount = max(1, min(8, vm.settings.maxSessionsShown))
+        let visibleSessions = Array(vm.sessions.prefix(maxCount))
+
+        VStack(alignment: .leading, spacing: 0) {
+            // Clean Glass Header
+            HStack(spacing: 6) {
+                Text("Antigravity")
+                    .font(.system(size: 12.5, weight: .bold))
+                    .foregroundColor(theme.primaryText)
+
+                Text(vm.activeCount > 0 ? "\(vm.activeCount) 活跃" : "全部就绪")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(styleMode == .aurora ? Color(red: 0.65, green: 0.95, blue: 0.84) : theme.tertiaryText)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    // 1-Click Style Mode Switcher (经典 -> S6 流体极光 -> S10 无框悬浮)
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "切换主题风格（当前：\(styleMode.displayName)，点击切换下一个）",
+                        action: { vm.updateSettings { $0.styleMode = styleMode.nextStyle.rawValue } }
+                    ) {
+                        Image(systemName: styleMode.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(styleMode == .aurora ? Color(red: 0.43, green: 0.91, blue: 0.72) : theme.secondaryText)
+                    }
+
+                    // Color Palette Swatch (shown in Classic mode)
+                    if styleMode == .classic {
+                        HudHeaderIconButton(
+                            theme: theme,
+                            helpText: "切换色彩基底（当前：\(theme.displayName)）",
+                            action: { vm.updateSettings { $0.theme = theme.nextTheme.rawValue } }
+                        ) {
+                            Circle()
+                                .fill(theme.swatchColor)
+                                .overlay(
+                                    Circle().strokeBorder(theme.primaryText.opacity(0.32), lineWidth: 0.7)
+                                )
+                                .frame(width: 9, height: 9)
+                        }
+                    }
+
+                    // 1-Click Collapsed Beacon Switcher (E01 -> E02 -> ... -> E10 -> 宽胶囊)
+                    let cStyle = vm.settings.resolvedCollapsedStyle
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "切换收起态样式（当前：\(cStyle.displayName)，移开鼠标即可预览）",
+                        action: { vm.updateSettings { $0.collapsedStyle = cStyle.nextStyle.rawValue } }
+                    ) {
+                        Image(systemName: cStyle.symbolName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+
+                    HudHeaderIconButton(
+                        theme: theme,
+                        isActive: vm.settings.pinnedExpanded,
+                        helpText: vm.settings.pinnedExpanded ? "取消固定展开" : "固定展开面板",
+                        action: { vm.updateSettings { $0.pinnedExpanded.toggle() } }
+                    ) {
+                        Image(systemName: vm.settings.pinnedExpanded ? "pin.fill" : "pin")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(vm.settings.pinnedExpanded ? theme.primaryText : theme.secondaryText)
+                    }
+
+                    HudHeaderIconButton(
+                        theme: theme,
+                        helpText: "隐藏桌面浮窗",
+                        action: { vm.updateSettings { $0.visible = false } }
+                    ) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundColor(theme.tertiaryText)
+                    }
+                }
+                .fixedSize()
+            }
+            .padding(.horizontal, 13)
+            .padding(.top, 11)
+            .padding(.bottom, 9)
+
+            // Flash banner
+            if let banner = vm.flashBanner {
+                HStack(spacing: 6) {
+                    Text(banner.message)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
                         .lineLimit(1)
                     Spacer()
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(banner.color.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(banner.color.opacity(theme.isLight ? 0.16 : 0.22))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .padding(.horizontal, 11)
+                .padding(.bottom, 8)
             }
 
-            Divider()
-                .background(Color.white.opacity(0.10))
-                .padding(.horizontal, 10)
-
-            if vm.sessions.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(red: 0.20, green: 0.84, blue: 0.60))
-                    Text("当前无待展示会话，新任务发起后将自动出现")
+            // Session List
+            if visibleSessions.isEmpty {
+                HStack(spacing: 8) {
+                    FourPointStarShape()
+                        .fill(theme.tertiaryText.opacity(0.6))
+                        .frame(width: 11, height: 11)
+                    Text("当前无活跃会话，新任务发起后将自动同步")
                         .font(.system(size: 11.5))
-                        .foregroundColor(.white.opacity(0.58))
+                        .foregroundColor(theme.secondaryText)
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 14)
+                .padding(.vertical, 16)
             } else {
-                VStack(spacing: 6) {
-                    ForEach(vm.sessions.prefix(5)) { session in
+                VStack(spacing: 7) {
+                    ForEach(visibleSessions) { session in
                         SessionCardRow(
                             session: session,
+                            theme: theme,
+                            styleMode: styleMode,
                             now: vm.now,
+                            pulseTick: vm.pulseTick,
                             isJumping: vm.jumpingSessionId == session.id,
                             onActivate: { vm.jumpToSession(session) },
                             onDismiss: session.phase.isActive ? nil : { vm.dismissSession(session) }
@@ -2519,200 +4918,225 @@ struct ExpandedHudView: View {
                     }
                 }
                 .padding(.horizontal, 10)
+                .padding(.bottom, vm.clearableCount > 0 ? 8 : 11)
             }
 
-            HStack {
-                Text("拖拽顶部移动位置 · 点击卡片直达对应会话")
-                    .font(.system(size: 9.5))
-                    .foregroundColor(.white.opacity(0.42))
-                Spacer()
-                if vm.clearableCount > 0 {
+            // Minimal conditional footer
+            if vm.clearableCount > 0 {
+                HStack {
+                    Spacer()
                     Button(action: {
                         vm.clearCompletedSessions()
                     }) {
-                        HStack(spacing: 3.5) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 9))
-                            Text("清理已完成 (\(vm.clearableCount))")
-                                .font(.system(size: 9.5, weight: .semibold))
-                        }
-                        .foregroundColor(Color(red: 0.62, green: 0.78, blue: 0.98))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2.5)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
+                        Text("清理已完成 (\(vm.clearableCount))")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(theme.secondaryText)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 3.5)
+                            .background(theme.controlBg)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .help("一键清理所有已完成或已停止的会话记录")
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 9)
         }
-        .frame(width: 386)
+        .frame(width: 336)
     }
 }
 
 struct SessionCardRow: View {
     let session: SessionSnapshot
+    let theme: HudTheme
+    var styleMode: HudStyleMode = .classic
+    var isStandaloneFloating: Bool = false
+    var blurAlpha: Double = 0.9
+    var tintAlpha: Double = 0.8
     let now: Date
+    let pulseTick: Bool
     let isJumping: Bool
     let onActivate: () -> Void
     let onDismiss: (() -> Void)?
+    @State private var isRowHovered: Bool = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        let isActive = session.phase.isActive
+        let isWaiting = session.phase == .waiting
+        let isError = session.phase == .error
+
+        let cornerRad: CGFloat = isStandaloneFloating ? 16 : (styleMode == .aurora ? 13 : 12)
+        let cardShape = RoundedRectangle(cornerRadius: cornerRad, style: .continuous)
+
+        let rowFill: Color = {
+            if isJumping {
+                return theme.controlActiveBg
+            }
+            if isWaiting {
+                return isRowHovered ? theme.waitingCardFill.opacity(1.25) : theme.waitingCardFill
+            }
+            if styleMode == .aurora {
+                return isRowHovered
+                    ? Color.white.opacity(isActive ? 0.14 : 0.09)
+                    : Color.white.opacity(isActive ? 0.09 : 0.05)
+            }
+            if isActive {
+                return isRowHovered ? theme.activeCardHoverFill : theme.activeCardFill
+            }
+            return isRowHovered ? theme.doneCardHoverFill : theme.doneCardFill
+        }()
+
+        let rowBorder: Color = {
+            if isJumping {
+                return theme.ringColor(for: .thinking).opacity(0.65)
+            }
+            if isWaiting {
+                return theme.waitingCardBorder
+            }
+            if styleMode == .aurora {
+                return isRowHovered ? Color.white.opacity(0.24) : Color.white.opacity(isActive ? 0.16 : 0.08)
+            }
+            if isActive {
+                return isRowHovered ? Color.white.opacity(theme.isLight ? 0.95 : 0.28) : theme.activeCardBorder
+            }
+            return isRowHovered ? Color.white.opacity(theme.isLight ? 0.75 : 0.14) : Color.white.opacity(theme.isLight ? 0.45 : 0.05)
+        }()
+
+        ZStack(alignment: .center) {
             Button(action: onActivate) {
-                VStack(alignment: .leading, spacing: 5) {
-                    // Row 1: Status Icon + Conversation Name + Phase Badge + Time
-                    HStack(spacing: 6) {
-                        Image(systemName: isJumping ? "arrow.up.forward.circle.fill" : session.phase.symbolName)
-                            .font(.system(size: 11.5, weight: .semibold))
-                            .foregroundColor(isJumping ? Color(red: 0.38, green: 0.75, blue: 1.0) : session.phase.accentColor)
+                ZStack {
+                    if isStandaloneFloating {
+                        // S10 · Self-contained levitating glass capsule
+                        ZStack {
+                            VisualEffectBlur(
+                                material: .popover,
+                                blendingMode: .behindWindow,
+                                alpha: CGFloat(blurAlpha),
+                                appearanceName: theme.isLight ? .aqua : .darkAqua
+                            )
+                            LinearGradient(
+                                colors: theme.glassGradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .opacity(isActive ? tintAlpha : tintAlpha * 0.88)
 
-                        Text(session.primaryTitle)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.96))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-
-                        Text(isJumping ? "正在跳转…" : session.phase.badgeText)
-                            .font(.system(size: 9.5, weight: .bold))
-                            .foregroundColor(isJumping ? Color(red: 0.38, green: 0.75, blue: 1.0) : session.phase.accentColor)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background((isJumping ? Color(red: 0.38, green: 0.75, blue: 1.0) : session.phase.accentColor).opacity(0.16))
-                            .clipShape(Capsule())
-                            .fixedSize()
-
-                        Spacer(minLength: 4)
-
-                        Text(session.primaryTimeBadge(now: now))
-                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                            .foregroundColor(session.phase.isActive ? session.phase.accentColor.opacity(0.95) : .white.opacity(0.50))
-                            .fixedSize()
-                            .padding(.trailing, onDismiss != nil ? 18 : 0)
+                            if isWaiting {
+                                theme.waitingCardFill
+                            } else if isRowHovered {
+                                Color.white.opacity(theme.isLight ? 0.20 : 0.06)
+                            }
+                        }
+                        .clipShape(cardShape)
+                    } else {
+                        cardShape.fill(rowFill)
                     }
 
-                    // Row 2: Workspace tag + Model tag + Latest User Prompt (or compact finished summary)
-                    HStack(spacing: 6) {
-                        if !session.workspaceName.isEmpty {
-                            HStack(spacing: 3) {
-                                Image(systemName: "folder.fill")
-                                    .font(.system(size: 8.5))
-                                Text(session.workspaceName)
-                                    .font(.system(size: 9.5, weight: .medium))
-                            }
-                            .foregroundColor(Color(red: 0.62, green: 0.78, blue: 0.98))
-                            .padding(.horizontal, 5.5)
-                            .padding(.vertical, 1.5)
-                            .background(Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                            .fixedSize()
-                        }
-
-                        if !session.modelShortName.isEmpty {
-                            Text(session.modelShortName)
-                                .font(.system(size: 9.5, design: .monospaced))
-                                .foregroundColor(.white.opacity(0.42))
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-
-                        if session.phase.isActive {
-                            if !session.promptTitle.isEmpty && session.promptTitle != session.primaryTitle {
-                                Text(session.promptTitle)
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white.opacity(0.68))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                            }
-                        } else {
-                            Spacer(minLength: 2)
-                            let checklistPart: String? = {
-                                guard let ts = session.taskStats else { return nil }
-                                return "清单 \(ts.done)/\(ts.total)"
-                            }()
-                            let parts: [String] = [
-                                checklistPart,
-                                session.turnToolCount > 0 ? "本轮 \(session.turnToolCount) 步" : nil,
-                                session.finishedTurnDurationText,
-                            ].compactMap { $0 }
-                            if !parts.isEmpty {
-                                Text(parts.joined(separator: " · "))
-                                    .font(.system(size: 9.5, design: .monospaced))
-                                    .foregroundColor(.white.opacity(0.44))
-                                    .fixedSize()
-                            }
-                        }
+                    if isActive && styleMode != .aurora {
+                        GlassProgressWash(session: session, theme: theme)
+                            .clipShape(cardShape)
                     }
 
-                    // Row 3 (Active or Error): Live action detail + compact step/checklist telemetry
-                    if session.phase.isActive || session.phase == .error {
+                    if isActive || isError {
                         let statusLine: String = {
                             if let ts = session.taskStats,
                                !ts.currentItem.isEmpty,
                                session.phase == .thinking {
                                 return ts.currentItem
                             }
-                            return session.detailText
+                            return session.detailText.isEmpty ? session.phase.badgeText : session.detailText
                         }()
 
-                        HStack(spacing: 6) {
-                            Text(statusLine)
-                                .font(.system(size: 10.5, weight: .medium))
-                                .foregroundColor(
-                                    session.phase == .waiting || session.phase == .error
-                                        ? session.phase.accentColor
-                                        : .white.opacity(0.86)
-                                )
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 7) {
+                                SessionStatusGlyph(phase: session.phase, theme: theme, styleMode: styleMode, pulseTick: pulseTick)
+
+                                Text(session.primaryTitle)
+                                    .font(.system(size: 12.5, weight: .semibold))
+                                    .foregroundColor(theme.primaryText)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+
+                                Spacer(minLength: 6)
+
+                                if isJumping {
+                                    Text("跳转中…")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(theme.ringColor(for: .thinking))
+                                        .fixedSize()
+                                } else if isWaiting {
+                                    Text("待确认")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(theme.waitingTitleAccent)
+                                        .fixedSize()
+                                } else if isActive {
+                                    StageMilestoneCapsules(session: session, theme: theme, styleMode: styleMode, pulseTick: pulseTick)
+                                        .fixedSize()
+                                }
+                            }
+
+                            HStack(spacing: 8) {
+                                Text(statusLine)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(
+                                        isWaiting
+                                            ? theme.waitingDetailColor
+                                            : (isError ? theme.ringColor(for: .error) : theme.secondaryText)
+                                    )
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+
+                                Spacer(minLength: 6)
+
+                                Text(session.primaryTimeBadge(now: now))
+                                    .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                    .foregroundColor(
+                                        styleMode == .aurora
+                                            ? Color(red: 0.65, green: 0.95, blue: 0.84)
+                                            : theme.tertiaryText
+                                    )
+                                    .fixedSize()
+                            }
+                            .padding(.leading, 25)
+                        }
+                        .padding(.horizontal, isStandaloneFloating ? 13 : 11)
+                        .padding(.vertical, 10)
+                    } else {
+                        HStack(spacing: 9) {
+                            SessionStatusGlyph(phase: session.phase, theme: theme, styleMode: styleMode, pulseTick: pulseTick)
+
+                            Text(session.primaryTitle)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(theme.secondaryText)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
 
-                            Spacer(minLength: 4)
+                            Spacer(minLength: 6)
 
-                            if session.phase.isActive, let ts = session.taskStats, ts.total > 0 {
-                                Text("清单 \(ts.done)/\(ts.total) · \(ts.percent)%")
-                                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(Color(red: 0.22, green: 0.86, blue: 0.64))
-                                    .fixedSize()
-                            } else if session.turnToolCount > 0 {
-                                HStack(spacing: 3.5) {
-                                    Text("\(session.turnToolCount) 步")
-                                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                                        .foregroundColor(session.phase.accentColor.opacity(0.95))
-                                    if !session.turnToolMix.isEmpty {
-                                        Text("· \(session.turnToolMix)")
-                                            .font(.system(size: 9.5, design: .monospaced))
-                                            .foregroundColor(.white.opacity(0.46))
-                                    }
-                                }
-                                .lineLimit(1)
+                            Text(session.primaryTimeBadge(now: now))
+                                .font(.system(size: 10.5, weight: .regular, design: .monospaced))
+                                .foregroundColor(theme.tertiaryText)
                                 .fixedSize()
-                            }
+                                .padding(.trailing, onDismiss != nil ? 20 : 0)
                         }
+                        .padding(.horizontal, isStandaloneFloating ? 13 : 11)
+                        .padding(.vertical, 8.5)
                     }
-
-                    // Row 4: Obsidian Laser Progress Track (Active turns only)
-                    SessionProgressTrack(session: session)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, session.phase.isActive ? 8.5 : 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(
-                            isJumping
-                                ? Color(red: 0.22, green: 0.45, blue: 0.78).opacity(0.26)
-                                : Color.white.opacity(session.phase.isActive ? 0.085 : 0.035)
-                        )
-                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    cardShape
                         .strokeBorder(
-                            isJumping
-                                ? Color(red: 0.38, green: 0.75, blue: 1.0).opacity(0.80)
-                                : (session.phase.isActive ? session.phase.accentColor.opacity(0.34) : Color.white.opacity(0.06)),
-                            lineWidth: isJumping ? 1.2 : 0.8
+                            isStandaloneFloating && !isWaiting && !isJumping
+                                ? AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: theme.outerBorderColors,
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                : AnyShapeStyle(rowBorder),
+                            lineWidth: isStandaloneFloating ? 1.0 : 0.8
                         )
                 )
                 .contentShape(Rectangle())
@@ -2720,18 +5144,25 @@ struct SessionCardRow: View {
             .buttonStyle(.plain)
 
             if let onDismiss = onDismiss {
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 8.5, weight: .bold))
-                        .foregroundColor(.white.opacity(0.45))
-                        .frame(width: 16, height: 16)
-                        .background(Color.white.opacity(0.07))
-                        .clipShape(Circle())
+                HStack {
+                    Spacer()
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundColor(theme.tertiaryText)
+                            .frame(width: 18, height: 18)
+                            .background(theme.controlBg)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, isStandaloneFloating ? 10 : 8)
+                    .help("移除此会话记录")
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 7)
-                .padding(.trailing, 8)
-                .help("从悬浮窗移除此已完成会话")
+            }
+        }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.14)) {
+                isRowHovered = hovering
             }
         }
     }
@@ -2742,6 +5173,11 @@ struct SessionCardRow: View {
 final class FloatingHudPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        // Allow hardware-notch Dynamic Island mode to sit flush at screen.frame.maxY inside the menu bar band
+        return frameRect
+    }
 }
 
 final class HoverTrackingHostingView<Content: View>: NSHostingView<Content> {
@@ -2799,6 +5235,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupStatusBarMenu()
 
         vm.onLayoutChange = { [weak self] in
+            DispatchQueue.main.async {
+                self?.syncPanelVisibilityAndFrame()
+            }
+        }
+        vm.onLayoutChangeNow = { [weak self] in
             self?.syncPanelVisibilityAndFrame()
         }
         vm.onAlphaChange = { [weak self] in
@@ -2808,6 +5249,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.updateStatusItemAppearance()
         }
 
+        if vm.settings.pinnedExpanded {
+            vm.isCanvasExpanded = true
+        }
         syncPanelVisibilityAndFrame()
         syncPanelAlpha()
         updateStatusItemAppearance()
@@ -2821,7 +5265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.vm.setHovering(hovering)
         }
 
-        let initialRect = NSRect(x: 0, y: 0, width: 344, height: 54)
+        let initialRect = NSRect(x: 0, y: 0, width: 312, height: 48)
         panel = FloatingHudPanel(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -2849,9 +5293,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func windowDidMove(_ note: Notification) {
         guard !isProgrammaticMove else { return }
         let frame = panel.frame
+        let screen = panel.screen ?? NSScreen.main ?? NSScreen.screens.first
+        let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+
         vm.settings.positionPreset = "custom"
         vm.settings.customTopCenterX = Double(frame.midX)
         vm.settings.customTopY = Double(frame.maxY)
+
+        if frame.midX > visibleRect.midX + 110 {
+            vm.settings.customAnchorMode = "right"
+            vm.settings.customAnchorX = Double(frame.maxX)
+        } else if frame.midX < visibleRect.midX - 110 {
+            vm.settings.customAnchorMode = "left"
+            vm.settings.customAnchorX = Double(frame.minX)
+        } else {
+            vm.settings.customAnchorMode = "center"
+            vm.settings.customAnchorX = Double(frame.midX)
+        }
+
         vm.saveSettings()
         vm.writeHelperStatus()
     }
@@ -2863,51 +5322,105 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
+        hostingView.invalidateIntrinsicContentSize()
         hostingView.layoutSubtreeIfNeeded()
         let fitting = hostingView.fittingSize
-        let targetWidth = max(344, fitting.width)
-        let targetHeight = max(54, fitting.height)
+
+        let canvasOpen = vm.effectiveCanvasExpanded
+        let collapsedStyle = vm.settings.resolvedCollapsedStyle
+        let minW: CGFloat = canvasOpen ? 306 : (collapsedStyle == .capsule ? 306 : 36)
+        let minH: CGFloat = canvasOpen ? 46 : (collapsedStyle == .e05 ? 25 : 30)
+
+        let targetWidth = ceil(max(minW, fitting.width))
+        let targetHeight = ceil(max(minH, fitting.height))
 
         let screen = panel.screen ?? NSScreen.main ?? NSScreen.screens.first
         let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let margin: CGFloat = 14
 
-        var topCenterX: CGFloat
-        var topY: CGFloat
+        if collapsedStyle == .e05 {
+            // Hardware-Notch / Menu-Bar Fused Dynamic Island: always lock to top-center notch!
+            let metrics = NotchScreenMetrics.current(for: screen)
+            let topEdge = metrics.hasHardwareNotch ? metrics.screenFrame.maxY : visibleRect.maxY
+            let originX = round(metrics.notchCenterX - targetWidth / 2.0)
+            let originY = round(topEdge - targetHeight)
+
+            let notchLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
+            if panel.level != notchLevel {
+                panel.level = notchLevel
+            }
+            panel.isMovableByWindowBackground = false
+
+            let newFrame = NSRect(x: originX, y: originY, width: targetWidth, height: targetHeight)
+            if panel.frame != newFrame {
+                isProgrammaticMove = true
+                panel.setFrame(newFrame, display: true, animate: false)
+                isProgrammaticMove = false
+                panel.invalidateShadow()
+            }
+            syncPanelAlpha()
+            if !panel.isVisible {
+                panel.orderFrontRegardless()
+            }
+            return
+        }
+
+        if panel.level != .statusBar {
+            panel.level = .statusBar
+        }
+        panel.isMovableByWindowBackground = true
+
+        var originX: CGFloat
+        var originY: CGFloat
 
         switch vm.settings.positionPreset {
         case "top_center":
-            topCenterX = visibleRect.midX
-            topY = visibleRect.maxY - 8
-        case "bottom_right":
-            topCenterX = visibleRect.maxX - (targetWidth / 2.0) - margin
-            topY = visibleRect.minY + targetHeight + margin
-        case "bottom_left":
-            topCenterX = visibleRect.minX + (targetWidth / 2.0) + margin
-            topY = visibleRect.minY + targetHeight + margin
-        case "custom":
-            if let cx = vm.settings.customTopCenterX, let cy = vm.settings.customTopY {
-                topCenterX = CGFloat(cx)
-                topY = CGFloat(cy)
-            } else {
-                topCenterX = visibleRect.maxX - (targetWidth / 2.0) - margin
-                topY = visibleRect.maxY - margin
-            }
-        default:
-            topCenterX = visibleRect.maxX - (targetWidth / 2.0) - margin
-            topY = visibleRect.maxY - margin
-        }
+            originX = round(visibleRect.midX - targetWidth / 2.0)
+            originY = round((visibleRect.maxY - 6) - targetHeight)
 
-        var originX = round(topCenterX - targetWidth / 2.0)
-        var originY = round(topY - targetHeight)
+        case "bottom_right":
+            originX = round(visibleRect.maxX - margin - targetWidth)
+            originY = round(visibleRect.minY + margin)
+
+        case "bottom_left":
+            originX = round(visibleRect.minX + margin)
+            originY = round(visibleRect.minY + margin)
+
+        case "custom":
+            let topY = CGFloat(vm.settings.customTopY ?? Double(visibleRect.maxY - margin))
+            originY = round(topY - targetHeight)
+
+            let mode = vm.settings.customAnchorMode ?? "right"
+            if mode == "right", let ax = vm.settings.customAnchorX {
+                originX = round(CGFloat(ax) - targetWidth)
+            } else if mode == "left", let ax = vm.settings.customAnchorX {
+                originX = round(CGFloat(ax))
+            } else if let cx = vm.settings.customTopCenterX {
+                originX = round(CGFloat(cx) - targetWidth / 2.0)
+            } else {
+                originX = round(visibleRect.maxX - margin - targetWidth)
+            }
+
+        default: // "top_right" (auto-centers if floating Dynamic Island `.island` is selected!)
+            if collapsedStyle == .island {
+                originX = round(visibleRect.midX - targetWidth / 2.0)
+                originY = round((visibleRect.maxY - 6) - targetHeight)
+            } else {
+                originX = round(visibleRect.maxX - margin - targetWidth)
+                originY = round((visibleRect.maxY - margin) - targetHeight)
+            }
+        }
 
         originX = max(visibleRect.minX + 6, min(originX, visibleRect.maxX - targetWidth - 6))
         originY = max(visibleRect.minY + 6, min(originY, visibleRect.maxY - targetHeight - 4))
 
         let newFrame = NSRect(x: originX, y: originY, width: targetWidth, height: targetHeight)
-        isProgrammaticMove = true
-        panel.setFrame(newFrame, display: true, animate: false)
-        isProgrammaticMove = false
+        if panel.frame != newFrame {
+            isProgrammaticMove = true
+            panel.setFrame(newFrame, display: true, animate: false)
+            isProgrammaticMove = false
+            panel.invalidateShadow()
+        }
 
         syncPanelAlpha()
 
@@ -2918,12 +5431,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func syncPanelAlpha() {
         guard panel != nil else { return }
+        let cs = vm.settings.resolvedCollapsedStyle
+        if cs == .e05 {
+            // Must remain 100% opaque pitch-black so it merges seamlessly with hardware camera bezel
+            if abs(panel.alphaValue - 1.0) > 0.002 {
+                panel.alphaValue = 1.0
+            }
+            return
+        }
         let base = vm.settings.clampedOpacity
         let target: Double
-        if vm.flashBanner != nil {
-            target = max(base, 0.90)
+        if cs == .island {
+            target = max(0.95, base)
+        } else if vm.flashBanner != nil {
+            target = max(base, 0.92)
         } else if vm.isAllIdleForLong {
-            target = max(0.16, base * 0.56)
+            target = cs == .capsule
+                ? max(0.32, base * 0.65)
+                : max(0.85, base * 0.92)
         } else {
             target = base
         }
@@ -2999,6 +5524,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         toggleDim.target = self
         toggleDim.state = vm.settings.autoDimIdle ? .on : .off
         menu.addItem(toggleDim)
+
+        let styleMenu = NSMenu()
+        for s in HudStyleMode.allCases {
+            let item = NSMenuItem(title: s.displayName, action: #selector(selectStyleMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = s.rawValue
+            item.state = (vm.settings.resolvedStyleMode == s) ? .on : .off
+            styleMenu.addItem(item)
+        }
+        let styleParent = NSMenuItem(title: "主题风格（\(vm.settings.resolvedStyleMode.shortLabel)）", action: nil, keyEquivalent: "")
+        styleParent.submenu = styleMenu
+        menu.addItem(styleParent)
+
+        let themeMenu = NSMenu()
+        for t in HudTheme.allCases {
+            let item = NSMenuItem(title: t.displayName, action: #selector(selectThemePreset(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = t.rawValue
+            item.state = (vm.settings.resolvedTheme == t) ? .on : .off
+            themeMenu.addItem(item)
+        }
+        let themeParent = NSMenuItem(title: "色彩基底（\(vm.settings.resolvedTheme.shortLabel)）", action: nil, keyEquivalent: "")
+        themeParent.submenu = themeMenu
+        menu.addItem(themeParent)
+
+        let collapsedMenu = NSMenu()
+        for cs in HudCollapsedStyle.allCases {
+            let item = NSMenuItem(title: cs.displayName, action: #selector(selectCollapsedStyle(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = cs.rawValue
+            item.state = (vm.settings.resolvedCollapsedStyle == cs) ? .on : .off
+            collapsedMenu.addItem(item)
+        }
+        let collapsedParent = NSMenuItem(title: "收起态样式（\(vm.settings.resolvedCollapsedStyle.shortLabel)）", action: nil, keyEquivalent: "")
+        collapsedParent.submenu = collapsedMenu
+        menu.addItem(collapsedParent)
+
+        let morphMenu = NSMenu()
+        for hm in HudHoverMorph.allCases {
+            let item = NSMenuItem(title: hm.displayName, action: #selector(selectHoverMorph(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = hm.rawValue
+            item.state = (vm.settings.resolvedHoverMorph == hm) ? .on : .off
+            morphMenu.addItem(item)
+        }
+        let morphParent = NSMenuItem(title: "悬停展开动效（\(vm.settings.resolvedHoverMorph.shortLabel)）", action: nil, keyEquivalent: "")
+        morphParent.submenu = morphMenu
+        menu.addItem(morphParent)
 
         let posMenu = NSMenu()
         let presets: [(id: String, title: String)] = [
@@ -3111,12 +5684,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         vm.updateSettings { $0.autoDimIdle.toggle() }
     }
 
+    @objc private func selectStyleMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        vm.updateSettings {
+            $0.styleMode = raw
+        }
+    }
+
+    @objc private func selectThemePreset(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        vm.updateSettings {
+            $0.theme = raw
+        }
+    }
+
+    @objc private func selectCollapsedStyle(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        vm.updateSettings {
+            $0.collapsedStyle = raw
+        }
+    }
+
+    @objc private func selectHoverMorph(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        vm.updateSettings {
+            $0.hoverMorph = raw
+        }
+    }
+
     @objc private func selectPositionPreset(_ sender: NSMenuItem) {
         guard let preset = sender.representedObject as? String else { return }
         vm.updateSettings {
             $0.positionPreset = preset
             $0.customTopCenterX = nil
             $0.customTopY = nil
+            $0.customAnchorMode = nil
+            $0.customAnchorX = nil
         }
     }
 
