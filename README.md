@@ -2,10 +2,15 @@
 
 专为 **Antigravity 2.0 Desktop (macOS)** 打造的全屏置顶多会话实时进度与完成提醒插件。即使你切到浏览器、终端、Xcode 或全屏应用，也能通过屏幕顶部的**原生刘海灵动岛**或屏幕角落的**双态微缩信标 (`NSPanel`)** 一瞥掌握所有并发 Agent 会话的实时动态。
 
+![AGY Floating HUD — 原生 MacBook 刘海灵动岛与悬停展开预览](docs/assets/hero-dynamic-island.png)
+
 ## 核心特性
 
 ### 1. 12 款可自由切换的收起形态（双灵动岛 + 双态微缩信标）
 针对多 Agent 并发场景同时呈现 **「进行中 (`✦`) × 已完成 (`✓`)」** 双通道信息，高密度磨砂基底杜绝底层标签文字透底重影，后台任务完成瞬间自动触发翡翠微光回弹反馈：
+
+![12 款双态收起形态与 4 种防跳展开物理曲线](docs/assets/collapsed-12-beacons.png)
+
 - **`灵动岛 · 刘海原生融黑` (`e05`，默认)**：动态读取 MacBook Retina 屏幕物理刘海精确尺寸 (`auxiliaryTopLeftArea / RightArea`)，重写 `NSPanel.constrainFrameRect` 原生融合嵌入顶部刘海层——左耳展示 `✦ 进行中数`，右耳展示 `✓ 已完成数`，平时完全藏于菜单栏高度内，对下方 IDE 标签栏 **0 像素遮挡**；鼠标移入即向下丝滑融化展开为纯黑 OLED 灵动岛面板（自动避让中间摄像头区域）。在无刘海外接显示器上自动切换为贴合菜单栏下沿的弯月流体小岛。
 - **`灵动岛 · 悬浮黑曜胶囊` (`island`)**：iPhone 风格顶部居中黑曜胶囊，内含呼吸四芒星、3 柱动态律动声波、实时耗时与翡翠完成胶囊。
 - **10 款「进行中 × 已完成」微缩器物信标 + 经典宽胶囊**：
@@ -21,6 +26,9 @@
 - **`M4 光学景深聚焦` (`m4`)**：原位柔焦退入景深与清晰对焦切换，零位移感。
 
 ### 3. 3 大展开主题风格 × 5 款液态玻璃色彩基底
+
+![3 大展开主题风格 × 5 款液态玻璃色板](docs/assets/expanded-3-styles-5-themes.png)
+
 - **3 种主题风格 (`styleMode`)**：
   - **`经典光学毛玻璃` (`classic`)**：多层高对比折射毛玻璃卡片，搭配前导微旋呼吸四芒星 (`✦`)、右侧 4 阶段里程碑胶囊与柔和静止底光渐进填充。
   - **`S6 流体极光呼吸` (`aurora`)**：磨砂玻璃底层内嵌深海蓝与极光翠绿双色光团，有活跃任务时柔和缓慢游走，空闲时自动静止省电。
@@ -28,7 +36,10 @@
 - **5 款精调色彩基底 (`theme`)**：
   - `3D 液态烟晶` (`smoked`) · `M2 深空星云` (`cosmos`) · `M8 岚山竹影` (`bamboo`) · `T2 午夜蓝宝石` (`sapphire`) · `M10 蚀刻雾银` (`pewter`，浅色低眩光磨砂主题)。
 
-### 4. 双引擎毫秒级进度感知 & `<5ms` 点击直达会话
+### 4. 可视化控制中心 + 双引擎进度感知 + `<5ms` 点击直达会话
+
+![Antigravity 右侧 Floating HUD 可视化控制中心](docs/assets/sidecar-control-center.png)
+
 - **SQLite WAL 实时只读引擎 (`conversations/<id>.db`)**：以 `SQLITE_OPEN_READONLY` + `PRAGMA query_only = ON` 直接读取 Antigravity 实时会话库与子代理树（自动聚合父子会话进度，避免 `transcript.jsonl` 跨轮次延迟导致状态滞后）。
 - **Lifecycle Hooks + `task.md` 清单分段映射**：实时捕获 `Stop` 终止原因，并自动解析会话下 `task.md` 复选框步骤为里程碑胶囊进度。
 - **点击卡片 `<5ms` 精准跳转**：结合 `nonactivatingPanel` 首次点击穿透 (`acceptsFirstMouse`) 与官方 `sidecar_sdk` (`window.sidecar.ui.toggleConversation`) 预热长轮询桥接，点击任意会话卡片立即激活 Antigravity 并切到对应会话。
