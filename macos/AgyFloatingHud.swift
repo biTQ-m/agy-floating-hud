@@ -368,19 +368,26 @@ enum HudHoverMorph: String, CaseIterable, Equatable {
 
     var expandAnimation: Animation {
         switch self {
-        case .m1: return .spring(response: 0.30, dampingFraction: 0.84, blendDuration: 0.08)
-        case .m2: return .spring(response: 0.28, dampingFraction: 0.86, blendDuration: 0.06)
-        case .m3: return .spring(response: 0.27, dampingFraction: 0.85, blendDuration: 0.06)
-        case .m4: return .easeOut(duration: 0.24)
+        case .m1: return .spring(response: 0.44, dampingFraction: 0.85, blendDuration: 0.14)
+        case .m2: return .spring(response: 0.40, dampingFraction: 0.86, blendDuration: 0.12)
+        case .m3: return .spring(response: 0.42, dampingFraction: 0.85, blendDuration: 0.12)
+        case .m4: return .spring(response: 0.38, dampingFraction: 0.88, blendDuration: 0.10)
         }
     }
 
     var collapseAnimation: Animation {
         switch self {
-        case .m1, .m2, .m3: return .spring(response: 0.24, dampingFraction: 0.88, blendDuration: 0.06)
-        case .m4: return .easeInOut(duration: 0.20)
+        case .m1, .m2, .m3: return .spring(response: 0.36, dampingFraction: 0.89, blendDuration: 0.12)
+        case .m4: return .spring(response: 0.33, dampingFraction: 0.91, blendDuration: 0.08)
         }
     }
+}
+
+enum HudCanvasMetrics {
+    static let width: CGFloat = 500
+    static let height: CGFloat = 600
+    static let hPad: CGFloat = 24
+    static let vPad: CGFloat = 18
 }
 
 enum HudTheme: String, CaseIterable, Equatable {
@@ -645,6 +652,8 @@ struct HudSettings: Codable, Equatable {
     var positionPreset: String = "top_right"
     var customTopCenterX: Double? = nil
     var customTopY: Double? = nil
+    var customBottomY: Double? = nil
+    var customVerticalMode: String? = nil
     var customAnchorMode: String? = nil
     var customAnchorX: Double? = nil
     var maxSessionsShown: Int = 5
@@ -652,6 +661,7 @@ struct HudSettings: Codable, Equatable {
     var theme: String? = nil
     var collapsedStyle: String? = nil
     var hoverMorph: String? = nil
+    var hoverDelay: Double? = nil
     var clearedCompletedBefore: Double? = nil
     var dismissedSessions: [String: Double]? = nil
 
@@ -672,6 +682,13 @@ struct HudSettings: Codable, Equatable {
 
     var resolvedHoverMorph: HudHoverMorph {
         HudHoverMorph(rawValue: hoverMorph ?? "") ?? .m1
+    }
+
+    var resolvedHoverDelay: Double {
+        if let raw = hoverDelay {
+            return min(1.20, max(0.05, raw))
+        }
+        return resolvedHoverMorph == .m3 ? 0.28 : 0.18
     }
 
     var clampedOpacity: Double {
@@ -844,13 +861,15 @@ private struct SummaryDBEntry {
 struct NotchScreenMetrics: Equatable {
     var hasHardwareNotch: Bool
     var notchWidth: CGFloat
+    var notchHeight: CGFloat
     var notchCenterX: CGFloat
     var menuBarHeight: CGFloat
     var screenFrame: NSRect
     var visibleFrame: NSRect
 
     static func current(for preferredScreen: NSScreen? = nil) -> NotchScreenMetrics {
-        let screen = preferredScreen ?? NSScreen.main ?? NSScreen.screens.first
+        let notchScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+        let screen = preferredScreen ?? notchScreen ?? NSScreen.main ?? NSScreen.screens.first
         let full = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let vis = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 876)
         let safeTop = screen?.safeAreaInsets.top ?? 0
@@ -860,11 +879,14 @@ struct NotchScreenMetrics: Equatable {
            let rightAux = screen?.auxiliaryTopRightArea,
            rightAux.minX > leftAux.maxX {
             let nw = rightAux.minX - leftAux.maxX
-            let cx = (leftAux.maxX + rightAux.minX) / 2.0
+            let rawCx = (leftAux.maxX + rightAux.minX) / 2.0
+            // Snap within 2pt to exact physical display midpoint (eliminates odd-pixel 771/772 split drift)
+            let cx = abs(rawCx - full.midX) <= 2.0 ? full.midX : rawCx
             let mh = max(safeTop, full.maxY - vis.maxY)
             return NotchScreenMetrics(
                 hasHardwareNotch: true,
                 notchWidth: nw,
+                notchHeight: safeTop,
                 notchCenterX: cx,
                 menuBarHeight: mh,
                 screenFrame: full,
@@ -875,6 +897,7 @@ struct NotchScreenMetrics: Equatable {
         return NotchScreenMetrics(
             hasHardwareNotch: safeTop > 0,
             notchWidth: safeTop > 0 ? 186 : 0,
+            notchHeight: safeTop > 0 ? safeTop : 0,
             notchCenterX: full.midX,
             menuBarHeight: max(24, full.maxY - vis.maxY),
             screenFrame: full,
@@ -897,6 +920,7 @@ final class HudViewModel: ObservableObject {
     @Published var isHovered: Bool = false
     @Published var isHoverArming: Bool = false
     @Published var isCanvasExpanded: Bool = false
+    @Published var isContentRevealed: Bool = false
     @Published var isOpacityBarOpen: Bool = false
     @Published var flashBanner: FlashBanner? = nil
     @Published var jumpingSessionId: String? = nil
@@ -907,6 +931,14 @@ final class HudViewModel: ObservableObject {
     var onLayoutChangeNow: (() -> Void)?
     var onAlphaChange: (() -> Void)?
     var onStatusChange: (() -> Void)?
+
+    /// Non-published live hit rect inside the fixed 452x560 SwiftUI canvas (avoids @Published view invalidation).
+    var activeCanvasRect: CGRect = CGRect(x: 70, y: 0, width: 312, height: 36)
+
+    func recordActiveCanvasRect(_ rect: CGRect) {
+        guard rect.width > 8, rect.height > 8, rect.width.isFinite, rect.height.isFinite else { return }
+        activeCanvasRect = rect
+    }
 
     let appDataDir: URL
     let summariesDBURL: URL
@@ -931,6 +963,7 @@ final class HudViewModel: ObservableObject {
     private var flashClearWorkItem: DispatchWorkItem? = nil
     private var hoverEnterWorkItem: DispatchWorkItem? = nil
     private var hoverExitWorkItem: DispatchWorkItem? = nil
+    private var contentRevealWorkItem: DispatchWorkItem? = nil
     private var collapseCanvasWorkItem: DispatchWorkItem? = nil
     private var pendingOpacitySaveWorkItem: DispatchWorkItem? = nil
     private var watchSources: [DispatchSourceFileSystemObject] = []
@@ -983,6 +1016,9 @@ final class HudViewModel: ObservableObject {
     var isBottomAnchored: Bool {
         let cs = settings.resolvedCollapsedStyle
         if cs == .e05 { return false }
+        if settings.positionPreset == "custom" {
+            return settings.customVerticalMode == "bottom"
+        }
         return settings.positionPreset == "bottom_right" || settings.positionPreset == "bottom_left"
     }
 
@@ -1089,80 +1125,121 @@ final class HudViewModel: ObservableObject {
         return now.timeIntervalSince(primary.updatedAt) > 180
     }
 
-    func setHovering(_ hovering: Bool) {
-        hoverExitWorkItem?.cancel()
-        hoverEnterWorkItem?.cancel()
-        collapseCanvasWorkItem?.cancel()
-
-        if hovering {
-            if settings.pinnedExpanded || isHovered {
+    func cancelPendingHoverDwellForDrag() {
+        if let pendingEnter = hoverEnterWorkItem {
+            pendingEnter.cancel()
+            hoverEnterWorkItem = nil
+        }
+        if let pendingExit = hoverExitWorkItem {
+            pendingExit.cancel()
+            hoverExitWorkItem = nil
+        }
+        if !isHovered && isHoverArming {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.88)) {
                 isHoverArming = false
-                isCanvasExpanded = true
+            }
+        }
+    }
+
+    func setHovering(_ hovering: Bool) {
+        if hovering {
+            if let pendingExit = hoverExitWorkItem {
+                pendingExit.cancel()
+                hoverExitWorkItem = nil
+            }
+            collapseCanvasWorkItem?.cancel()
+
+            if settings.pinnedExpanded || isHovered {
+                if isHoverArming {
+                    isHoverArming = false
+                }
+                if !isHovered {
+                    isHovered = true
+                }
+                if !isCanvasExpanded {
+                    isCanvasExpanded = true
+                }
+                if !isContentRevealed {
+                    isContentRevealed = true
+                }
                 return
             }
 
-            let morph = settings.resolvedHoverMorph
-            let dwell: TimeInterval = (morph == .m3) ? 0.095 : 0.025
-            if morph == .m3 && !isHoverArming {
-                withAnimation(.easeOut(duration: 0.09)) {
-                    isHoverArming = true
-                }
+            // Already counting down dwell — let the in-flight peeking spring & timer continue!
+            if hoverEnterWorkItem != nil {
+                return
             }
 
+            // Stage 1 (0ms): Immediate viscous liquid pull (starts moving smoothly at 120Hz right away)
+            let dwell = settings.resolvedHoverDelay
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.82, blendDuration: 0.10)) {
+                isHoverArming = true
+            }
+
+            // Stage 2 (velocity handoff at dwell): Continue seamlessly from in-flight spring into full open!
             let enterItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
-                self.isHoverArming = false
-                // Step 1: Expand transparent NSPanel canvas while keeping beacon at exact anchor pixel
-                self.isCanvasExpanded = true
+                self.hoverEnterWorkItem = nil
+                if !self.isCanvasExpanded {
+                    self.isCanvasExpanded = true
+                }
                 self.onAlphaChange?()
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.onLayoutChangeNow?()
-                    // Step 2: Run smooth SwiftUI spring morph inside the already-sized NSPanel
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self else { return }
-                        withAnimation(self.settings.resolvedHoverMorph.expandAnimation) {
-                            self.isHovered = true
-                        }
-                    }
+                withAnimation(self.settings.resolvedHoverMorph.expandAnimation) {
+                    self.isHoverArming = false
+                    self.isHovered = true
+                    self.isContentRevealed = true
                 }
             }
             hoverEnterWorkItem = enterItem
             DispatchQueue.main.asyncAfter(deadline: .now() + dwell, execute: enterItem)
         } else {
-            if isHoverArming {
-                withAnimation(.easeOut(duration: 0.12)) {
-                    isHoverArming = false
-                }
+            if let pendingEnter = hoverEnterWorkItem {
+                pendingEnter.cancel()
+                hoverEnterWorkItem = nil
             }
+            contentRevealWorkItem?.cancel()
+
+            // Cursor brushed past before dwell finished -> glide smoothly back to rest!
+            if !isHovered {
+                if isHoverArming {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.84, blendDuration: 0.08)) {
+                        isHoverArming = false
+                    }
+                }
+                return
+            }
+
+            // Already counting down exit grace -> don't reset timer repeatedly
+            if hoverExitWorkItem != nil {
+                return
+            }
+
             let exitItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
+                self.hoverExitWorkItem = nil
                 if self.settings.pinnedExpanded {
-                    self.isHovered = false
+                    if self.isHovered {
+                        self.isHovered = false
+                    }
+                    if !self.isContentRevealed {
+                        self.isContentRevealed = true
+                    }
                     return
                 }
                 if self.isHovered {
                     let morph = self.settings.resolvedHoverMorph
                     withAnimation(morph.collapseAnimation) {
+                        self.isContentRevealed = false
                         self.isHovered = false
                     }
-                    self.isOpacityBarOpen = false
-                    self.onAlphaChange?()
-
-                    let shrinkItem = DispatchWorkItem { [weak self] in
-                        guard let self = self, !self.isHovered, !self.settings.pinnedExpanded else { return }
-                        self.isCanvasExpanded = false
-                        self.onLayoutChange?()
+                    if self.isOpacityBarOpen {
+                        self.isOpacityBarOpen = false
                     }
-                    self.collapseCanvasWorkItem = shrinkItem
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.26, execute: shrinkItem)
-                } else if self.isCanvasExpanded {
-                    self.isCanvasExpanded = false
-                    self.onLayoutChange?()
+                    self.onAlphaChange?()
                 }
             }
             hoverExitWorkItem = exitItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: exitItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: exitItem)
         }
     }
 
@@ -1203,8 +1280,10 @@ final class HudViewModel: ObservableObject {
         settings = next
         if next.pinnedExpanded {
             isCanvasExpanded = true
+            isContentRevealed = true
         } else if !isHovered {
             isCanvasExpanded = false
+            isContentRevealed = false
         }
         saveSettings()
         writeHelperStatus()
@@ -1277,6 +1356,7 @@ final class HudViewModel: ObservableObject {
             "theme": settings.resolvedTheme.rawValue,
             "collapsedStyle": settings.resolvedCollapsedStyle.rawValue,
             "hoverMorph": settings.resolvedHoverMorph.rawValue,
+            "hoverDelay": settings.resolvedHoverDelay,
             "activeCount": activeCount,
             "totalTracked": sessions.count,
             "sessions": serializedSessions,
@@ -1314,6 +1394,20 @@ final class HudViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { [weak self] in
             if self?.jumpingSessionId == session.id {
                 self?.jumpingSessionId = nil
+            }
+        }
+
+        if !settings.pinnedExpanded && isHovered {
+            hoverExitWorkItem?.cancel()
+            hoverExitWorkItem = nil
+            let morph = settings.resolvedHoverMorph
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+                guard let self = self, !self.settings.pinnedExpanded else { return }
+                withAnimation(morph.collapseAnimation) {
+                    self.isContentRevealed = false
+                    self.isHovered = false
+                }
+                self.onAlphaChange?()
             }
         }
 
@@ -1419,8 +1513,10 @@ final class HudViewModel: ObservableObject {
                 settings = decoded
                 if decoded.pinnedExpanded {
                     isCanvasExpanded = true
+                    isContentRevealed = true
                 } else if !isHovered {
                     isCanvasExpanded = false
+                    isContentRevealed = false
                 }
                 refreshAll()
                 onLayoutChange?()
@@ -2866,6 +2962,14 @@ struct NotchMeniscusShape: Shape {
     var shoulderRadius: CGFloat = 9
     var bottomRadius: CGFloat = 13
 
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(shoulderRadius, bottomRadius) }
+        set {
+            shoulderRadius = newValue.first
+            bottomRadius = newValue.second
+        }
+    }
+
     func path(in rect: CGRect) -> Path {
         let s = min(shoulderRadius, rect.width * 0.2, rect.height * 0.45)
         let bodyW = max(8, rect.width - 2.0 * s)
@@ -2906,6 +3010,14 @@ struct NotchMeniscusShape: Shape {
 struct NotchMeniscusRimShape: Shape {
     var shoulderRadius: CGFloat = 9
     var bottomRadius: CGFloat = 13
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(shoulderRadius, bottomRadius) }
+        set {
+            shoulderRadius = newValue.first
+            bottomRadius = newValue.second
+        }
+    }
 
     func path(in rect: CGRect) -> Path {
         let s = min(shoulderRadius, rect.width * 0.2, rect.height * 0.45)
@@ -3376,9 +3488,16 @@ struct BeaconE05NotchWings: View {
         let shoulder: CGFloat = 9
         let earWidth: CGFloat = 54
         let height: CGFloat = metrics.hasHardwareNotch ? metrics.menuBarHeight : 27
-        let rimColor = waiting
-            ? Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.62)
-            : Color.white.opacity(0.16)
+        let arming = vm.isHoverArming
+        let rimColor: Color = {
+            if arming {
+                return Color(red: 0.51, green: 0.69, blue: 1.00).opacity(0.76)
+            }
+            if waiting {
+                return Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.62)
+            }
+            return Color.white.opacity(0.16)
+        }()
 
         Group {
             if metrics.hasHardwareNotch {
@@ -3445,7 +3564,13 @@ struct BeaconE05NotchWings: View {
         .clipShape(NotchMeniscusShape(shoulderRadius: shoulder, bottomRadius: 12))
         .overlay(
             NotchMeniscusRimShape(shoulderRadius: shoulder, bottomRadius: 12)
-                .stroke(rimColor, lineWidth: 0.85)
+                .stroke(rimColor, lineWidth: arming ? 1.25 : 0.85)
+        )
+        .shadow(
+            color: arming ? Color(red: 0.45, green: 0.64, blue: 1.00).opacity(0.45) : .clear,
+            radius: 6,
+            x: 0,
+            y: 2
         )
         .fixedSize()
     }
@@ -3462,9 +3587,16 @@ struct BeaconDynamicIslandPill: View {
         let waiting = vm.waitingCount > 0
         let accentBlue = Color(red: 0.51, green: 0.69, blue: 1.00)
         let emeraldFg = Color(red: 0.36, green: 0.93, blue: 0.69)
-        let rimColor = waiting
-            ? Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.68)
-            : Color.white.opacity(0.20)
+        let arming = vm.isHoverArming
+        let rimColor: Color = {
+            if arming {
+                return accentBlue.opacity(0.78)
+            }
+            if waiting {
+                return Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.68)
+            }
+            return Color.white.opacity(0.20)
+        }()
 
         HStack(spacing: 10) {
             // Left Island Zone: Star + Live Mini Equalizer Bars + Active Count
@@ -4276,6 +4408,996 @@ struct ExpandedEnvelopeView: View {
     }
 }
 
+// MARK: - 120Hz ProMotion Liquid Morph Engine (Single-Shell Velocity Handoff)
+
+enum HudLiquidCurves {
+    static func clamp01(_ v: CGFloat) -> CGFloat {
+        min(1.0, max(0.0, v))
+    }
+}
+
+private struct HudSizeReader: View {
+    let onChange: (CGSize, Bool) -> Void
+    @State private var didAppear = false
+
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear {
+                    onChange(geo.size, false)
+                    didAppear = true
+                }
+                .onChange(of: geo.size) { _, newSize in
+                    onChange(newSize, didAppear)
+                }
+        }
+    }
+}
+
+private struct CanvasHitBoxReader: View {
+    let vm: HudViewModel
+    var enabled: Bool = true
+
+    var body: some View {
+        GeometryReader { geo in
+            let _: Void = enabled ? vm.recordActiveCanvasRect(geo.frame(in: .named("hudCanvas"))) : ()
+            Color.clear
+        }
+    }
+}
+
+/// 120Hz Dual-Axis Harmonic Stage for MacBook Hardware-Notch Dynamic Island (`.e05`).
+private struct AnimatableNotchIslandStage<GlyphView: View, ActionButtons: View, Drawer: View>: View, Animatable {
+    var widthProgress: CGFloat
+    var heightProgress: CGFloat
+    let vm: HudViewModel
+    let metrics: NotchScreenMetrics
+    let activeCount: Int
+    let doneCount: Int
+    let isWaiting: Bool
+    let donePopScale: CGFloat
+    let drawerHeight: CGFloat
+    let isOpenInteractive: Bool
+    let onTapCollapsed: () -> Void
+    let glyphView: GlyphView
+    let actionButtons: ActionButtons
+    let drawer: Drawer
+
+    nonisolated var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(widthProgress, heightProgress) }
+        set {
+            widthProgress = newValue.first
+            heightProgress = newValue.second
+        }
+    }
+
+    var body: some View {
+        let wP = max(0, widthProgress)
+        let hP = max(0, heightProgress)
+        let p01 = HudLiquidCurves.clamp01(max(wP * 0.5, hP))
+        let peekGlow = HudLiquidCurves.clamp01(wP / 0.22) * (1.0 - HudLiquidCurves.clamp01((hP - 0.14) / 0.28))
+        let headerCross = HudLiquidCurves.clamp01((wP - 0.26) / 0.52)
+        let cardAlpha = HudLiquidCurves.clamp01((hP - 0.14) / 0.68)
+
+        // Symmetrical center camera clearance + generous outer framing
+        let notchBridgeW: CGFloat = metrics.hasHardwareNotch
+            ? ceil((metrics.notchWidth + 8.0) / 2.0) * 2.0
+            : 0
+        let collapsedEarW: CGFloat = 60
+        let collapsedBodyW: CGFloat = metrics.hasHardwareNotch ? (notchBridgeW + collapsedEarW * 2.0) : 164
+        let expandedBodyW: CGFloat = 424
+        let curBodyW = max(140, collapsedBodyW + (expandedBodyW - collapsedBodyW) * wP)
+
+        let collapsedHeaderH: CGFloat = metrics.hasHardwareNotch ? max(36, metrics.notchHeight + 4.0) : 32
+        let expandedHeaderH: CGFloat = metrics.hasHardwareNotch ? max(38, metrics.notchHeight + 6.0) : 40
+        let curHeaderH = collapsedHeaderH + (expandedHeaderH - collapsedHeaderH) * min(1.0, hP)
+        let safeDrawerH = max(72, drawerHeight)
+        let curTotalH = max(collapsedHeaderH, curHeaderH + (safeDrawerH + 6.0) * hP)
+
+        let curShoulder: CGFloat = 10.0 + 4.0 * min(1.1, wP)
+        let curBottomRadius: CGFloat = 14.0 + 13.0 * min(1.05, hP)
+        let totalOuterW = curBodyW + curShoulder * 2.0
+
+        // Record exact hit-test rect analytically (zero GeometryReader layout pass during 120Hz morph!)
+        let _: Void = vm.recordActiveCanvasRect(
+            CGRect(
+                x: (HudCanvasMetrics.width - totalOuterW) * 0.5,
+                y: 0,
+                width: totalOuterW,
+                height: curTotalH
+            )
+        )
+
+        let baseRimColor: Color = isWaiting
+            ? Color(red: 1.00, green: 0.78, blue: 0.22).opacity(0.66)
+            : Color.white.opacity(0.17 + 0.04 * Double(p01))
+        let rimColor: Color = peekGlow > 0.05
+            ? Color(red: 0.51, green: 0.69, blue: 1.00).opacity(0.32 + 0.46 * Double(peekGlow))
+            : baseRimColor
+
+        Color.black
+            .frame(width: totalOuterW, height: curTotalH)
+            .overlay(alignment: .top) {
+                VStack(spacing: 6) {
+                    // Top Meniscus Header Bar (strictly bounded per-ear overlays prevent any overflow/clipping!)
+                    if metrics.hasHardwareNotch {
+                        let sideWidth = max(collapsedEarW, (curBodyW - notchBridgeW) * 0.5)
+                        HStack(spacing: 0) {
+                            // Left Wing: strictly `sideWidth` wide
+                            Color.clear
+                                .frame(width: sideWidth, height: curHeaderH)
+                                .overlay(alignment: .leading) {
+                                    HStack(spacing: 4.5) {
+                                        glyphView
+                                        ZStack(alignment: .leading) {
+                                            Text("\(activeCount)")
+                                                .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                                .foregroundColor(
+                                                    isWaiting
+                                                        ? Color(red: 1.00, green: 0.84, blue: 0.32)
+                                                        : (activeCount > 0 ? Color(red: 0.78, green: 0.88, blue: 1.00) : Color.white.opacity(0.52))
+                                                )
+                                                .fixedSize()
+                                                .opacity(Double(1.0 - headerCross))
+                                                .offset(y: -4.0 * headerCross)
+
+                                            Text(activeCount > 0 ? "\(activeCount) 活跃" : "全部就绪")
+                                                .font(.system(size: 11.5, weight: .semibold))
+                                                .foregroundColor(.white.opacity(0.92))
+                                                .fixedSize()
+                                                .opacity(Double(headerCross))
+                                                .offset(y: 4.0 * (1.0 - headerCross))
+                                        }
+                                    }
+                                    .padding(.leading, 15.0 + 1.0 * headerCross)
+                                    .padding(.bottom, 1.5 * (1.0 - headerCross))
+                                }
+
+                            // Center Hardware Camera Cutout Bridge
+                            Color.clear
+                                .frame(width: notchBridgeW, height: curHeaderH)
+
+                            // Right Wing: strictly `sideWidth` wide (overlays never push layout bounds!)
+                            Color.clear
+                                .frame(width: sideWidth, height: curHeaderH)
+                                .overlay(alignment: .trailing) {
+                                    HStack(spacing: 3.5) {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 9.5, weight: .heavy))
+                                            .foregroundColor(Color(red: 0.28, green: 0.90, blue: 0.64))
+                                        Text("\(doneCount)")
+                                            .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                            .foregroundColor(doneCount > 0 ? Color(red: 0.56, green: 0.96, blue: 0.76) : Color.white.opacity(0.48))
+                                    }
+                                    .fixedSize()
+                                    .scaleEffect(donePopScale * (1.0 - 0.12 * headerCross), anchor: .trailing)
+                                    .opacity(Double(1.0 - headerCross))
+                                    .offset(x: 5.0 * headerCross)
+                                    .padding(.trailing, 15)
+                                    .padding(.bottom, 1.5)
+                                    .allowsHitTesting(false)
+                                }
+                                .overlay(alignment: .trailing) {
+                                    actionButtons
+                                        .scaleEffect(0.86 + 0.14 * headerCross, anchor: .trailing)
+                                        .opacity(Double(headerCross))
+                                        .offset(x: 6.0 * (1.0 - headerCross))
+                                        .padding(.trailing, 15)
+                                        .allowsHitTesting(isOpenInteractive)
+                                }
+                        }
+                        .frame(width: curBodyW, height: curHeaderH)
+                    } else {
+                        // Non-Notch Display Header
+                        Color.clear
+                            .frame(width: curBodyW, height: curHeaderH)
+                            .overlay {
+                                HStack(spacing: 12) {
+                                    HStack(spacing: 4.5) {
+                                        glyphView
+                                        Text("\(activeCount)")
+                                            .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                            .foregroundColor(isWaiting ? Color(red: 1.00, green: 0.84, blue: 0.32) : Color(red: 0.78, green: 0.88, blue: 1.00))
+                                    }
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.16))
+                                        .frame(width: 1, height: 11)
+                                    HStack(spacing: 3.5) {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 9.5, weight: .heavy))
+                                            .foregroundColor(Color(red: 0.28, green: 0.90, blue: 0.64))
+                                        Text("\(doneCount)")
+                                            .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                                            .foregroundColor(doneCount > 0 ? Color(red: 0.56, green: 0.96, blue: 0.76) : Color.white.opacity(0.48))
+                                    }
+                                    .scaleEffect(donePopScale)
+                                }
+                                .fixedSize()
+                                .opacity(Double(1.0 - headerCross))
+                                .allowsHitTesting(false)
+                            }
+                            .overlay {
+                                HStack(spacing: 6) {
+                                    Text("Antigravity")
+                                        .font(.system(size: 12.5, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Text(activeCount > 0 ? "\(activeCount) 活跃" : "全部就绪")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(Color(red: 0.65, green: 0.78, blue: 1.00))
+                                    Spacer()
+                                    actionButtons
+                                }
+                                .padding(.horizontal, 16)
+                                .opacity(Double(headerCross))
+                                .allowsHitTesting(isOpenInteractive)
+                            }
+                    }
+
+                    // Drawer placed via true VStack layout (zero residual .offset when hP == 1.0 -> 100% accurate hit-testing!)
+                    drawer
+                        .scaleEffect(0.92 + 0.08 * min(1.0, wP), anchor: .top)
+                        .offset(y: -10.0 * (1.0 - min(1.0, hP)))
+                        .opacity(Double(cardAlpha))
+                        .allowsHitTesting(isOpenInteractive)
+                }
+            }
+            .overlay {
+                if !isOpenInteractive {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onTapCollapsed)
+                }
+            }
+            .clipShape(NotchMeniscusShape(shoulderRadius: curShoulder, bottomRadius: curBottomRadius))
+            .overlay(
+                NotchMeniscusRimShape(shoulderRadius: curShoulder, bottomRadius: curBottomRadius)
+                    .stroke(rimColor, lineWidth: peekGlow > 0.05 ? 1.20 : 0.95)
+            )
+            .shadow(
+                color: .black.opacity(0.20 + 0.35 * Double(p01)),
+                radius: 5.0 + 13.0 * p01,
+                x: 0,
+                y: 2.5 + 7.5 * p01
+            )
+    }
+}
+
+/// Persistent Single-Shell MacBook Hardware-Notch Dynamic Island View.
+struct UnifiedNotchDynamicIslandView: View {
+    @ObservedObject var vm: HudViewModel
+    @State private var drawerHeight: CGFloat = 180
+    @State private var donePopScale: CGFloat = 1.0
+
+    var body: some View {
+        let metrics = NotchScreenMetrics.current()
+        let open = vm.isExpanded
+        let peeking = vm.isHoverArming && !open
+        let targetW: CGFloat = open ? 1.0 : (peeking ? 0.22 : 0.0)
+        let targetH: CGFloat = open ? 1.0 : (peeking ? 0.032 : 0.0)
+        let maxCount = max(1, min(8, vm.settings.maxSessionsShown))
+        let visibleSessions = Array(vm.sessions.prefix(maxCount))
+        let cStyle = vm.settings.resolvedCollapsedStyle
+        let pinnedExpanded = vm.settings.pinnedExpanded
+
+        let glyphView = BeaconMiniActiveGlyph(
+            isActive: vm.activeCount > 0,
+            isWaiting: vm.waitingCount > 0,
+            theme: .cosmos,
+            size: 11.5
+        )
+
+        let actionButtons = HStack(spacing: 4) {
+            HudHeaderIconButton(
+                theme: .cosmos,
+                helpText: "切换收起态样式（当前：\(cStyle.displayName)）",
+                action: { vm.updateSettings { $0.collapsedStyle = cStyle.nextStyle.rawValue } }
+            ) {
+                Image(systemName: cStyle.symbolName)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+
+            HudHeaderIconButton(
+                theme: .cosmos,
+                isActive: pinnedExpanded,
+                helpText: pinnedExpanded ? "取消固定展开" : "固定展开灵动岛",
+                action: { vm.updateSettings { $0.pinnedExpanded.toggle() } }
+            ) {
+                Image(systemName: pinnedExpanded ? "pin.fill" : "pin")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(pinnedExpanded ? .white : .white.opacity(0.75))
+            }
+
+            HudHeaderIconButton(
+                theme: .cosmos,
+                helpText: "隐藏桌面浮窗",
+                action: { vm.updateSettings { $0.visible = false } }
+            ) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.65))
+            }
+        }
+        .fixedSize()
+
+        // CRITICAL: `.fixedSize(horizontal: true, vertical: true)` ensures drawer ALWAYS lays out at full
+        // uncompressed 424pt width & full multi-card height even while collapsed!
+        let drawerContent = VStack(alignment: .leading, spacing: 0) {
+            if let banner = vm.flashBanner {
+                HStack(spacing: 6) {
+                    Text(banner.message)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Spacer()
+                }
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6.5)
+                .background(banner.color.opacity(0.24))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(.horizontal, 15)
+                .padding(.bottom, 8)
+            }
+
+            if visibleSessions.isEmpty {
+                HStack(spacing: 8) {
+                    FourPointStarShape()
+                        .fill(Color.white.opacity(0.5))
+                        .frame(width: 11, height: 11)
+                    Text("当前无活跃会话，新任务发起后将实时上岛")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.white.opacity(0.75))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+            } else {
+                VStack(spacing: 7) {
+                    ForEach(visibleSessions) { session in
+                        SessionCardRow(
+                            session: session,
+                            theme: .cosmos,
+                            styleMode: .classic,
+                            now: vm.now,
+                            pulseTick: vm.pulseTick,
+                            isJumping: vm.jumpingSessionId == session.id,
+                            onActivate: { vm.jumpToSession(session) },
+                            onDismiss: session.phase.isActive ? nil : { vm.dismissSession(session) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 15)
+                .padding(.bottom, vm.clearableCount > 0 ? 9 : 15)
+            }
+
+            if vm.clearableCount > 0 {
+                HStack {
+                    Spacer()
+                    Button(action: { vm.clearCompletedSessions() }) {
+                        Text("清理已完成 (\(vm.clearableCount))")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.82))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.10))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 15)
+                .padding(.bottom, 13)
+            }
+        }
+        .frame(width: 424)
+        .fixedSize(horizontal: true, vertical: true)
+        .background(
+            HudSizeReader { size, animated in
+                guard size.height > 30 else { return }
+                if abs(drawerHeight - size.height) > 0.5 {
+                    if animated && open {
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            drawerHeight = size.height
+                        }
+                    } else {
+                        drawerHeight = size.height
+                    }
+                }
+            }
+        )
+
+        AnimatableNotchIslandStage(
+            widthProgress: targetW,
+            heightProgress: targetH,
+            vm: vm,
+            metrics: metrics,
+            activeCount: vm.activeCount,
+            doneCount: vm.clearableCount,
+            isWaiting: vm.waitingCount > 0,
+            donePopScale: donePopScale,
+            drawerHeight: drawerHeight,
+            isOpenInteractive: open,
+            onTapCollapsed: {
+                if let s = vm.primarySession {
+                    vm.jumpToSession(s)
+                } else {
+                    vm.activateAntigravity()
+                }
+            },
+            glyphView: glyphView,
+            actionButtons: actionButtons,
+            drawer: drawerContent
+        )
+        .onChange(of: vm.clearableCount) { oldCount, newCount in
+            if newCount > oldCount {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.52)) {
+                    donePopScale = 1.18
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        donePopScale = 1.0
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 120Hz Dual-Axis Stage for Floating Obsidian Pill Dynamic Island (`.island`).
+private struct AnimatableFloatingIslandStage<CollapsedContent: View, ExpandedContent: View>: View, Animatable {
+    var widthProgress: CGFloat
+    var heightProgress: CGFloat
+    let vm: HudViewModel
+    let pillSize: CGSize
+    let expandedSize: CGSize
+    let isBottomAnchored: Bool
+    let needsAttention: Bool
+    let attentionColor: Color
+    let isOpenInteractive: Bool
+    let onTapCollapsed: () -> Void
+    let collapsedContent: CollapsedContent
+    let expandedContent: ExpandedContent
+
+    nonisolated var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(widthProgress, heightProgress) }
+        set {
+            widthProgress = newValue.first
+            heightProgress = newValue.second
+        }
+    }
+
+    var body: some View {
+        let wP = max(0, widthProgress)
+        let hP = max(0, heightProgress)
+        let p01 = HudLiquidCurves.clamp01(max(wP * 0.5, hP))
+        let peekGlow = HudLiquidCurves.clamp01(wP / 0.22) * (1.0 - HudLiquidCurves.clamp01((hP - 0.14) / 0.28))
+        let crossOut = HudLiquidCurves.clamp01((wP - 0.24) / 0.42)
+        let crossIn = HudLiquidCurves.clamp01((hP - 0.14) / 0.66)
+
+        let baseW = max(124, pillSize.width)
+        let baseH = max(34, pillSize.height)
+        let expW = max(336, expandedSize.width)
+        let expH = max(96, expandedSize.height)
+
+        let curW = max(124, baseW + (expW - baseW) * wP)
+        let curH = max(34, baseH + (expH - baseH) * hP)
+        let curRadius: CGFloat = 17.0 + 9.0 * min(1.05, hP)
+        let vAlign: Alignment = isBottomAnchored ? .bottom : .top
+
+        let rimColor: Color = {
+            if peekGlow > 0.05 {
+                return Color(red: 0.51, green: 0.69, blue: 1.00).opacity(0.32 + 0.46 * Double(peekGlow))
+            }
+            if needsAttention {
+                return attentionColor.opacity(0.72)
+            }
+            return Color.white.opacity(0.19)
+        }()
+
+        Color(red: 0.025, green: 0.035, blue: 0.06)
+            .frame(width: curW, height: curH)
+            .overlay(alignment: vAlign) {
+                expandedContent
+                    .scaleEffect(0.92 + 0.08 * min(1.02, wP), anchor: isBottomAnchored ? .bottom : .top)
+                    .offset(y: (isBottomAnchored ? 10.0 : -10.0) * (1.0 - min(1.0, hP)))
+                    .opacity(Double(crossIn))
+                    .allowsHitTesting(isOpenInteractive)
+            }
+            .overlay(alignment: vAlign) {
+                collapsedContent
+                    .frame(height: baseH)
+                    .scaleEffect(1.0 + 0.025 * peekGlow - 0.08 * crossOut)
+                    .opacity(Double(1.0 - crossOut))
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                if !isOpenInteractive {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: onTapCollapsed)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: curRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: curRadius, style: .continuous)
+                    .strokeBorder(rimColor, lineWidth: peekGlow > 0.05 ? 1.15 : 0.95)
+            )
+            .shadow(
+                color: .black.opacity(0.24 + 0.28 * Double(p01)),
+                radius: 6.0 + 11.0 * p01,
+                x: 0,
+                y: 3.0 + 6.0 * p01
+            )
+            .background(CanvasHitBoxReader(vm: vm))
+    }
+}
+
+/// Persistent Single-Shell Floating Pill Dynamic Island View (`.island`).
+struct UnifiedFloatingIslandView: View {
+    @ObservedObject var vm: HudViewModel
+    let needsAttention: Bool
+    let attentionColor: Color
+
+    @State private var pillSize: CGSize = CGSize(width: 146, height: 34)
+    @State private var expandedSize: CGSize = CGSize(width: 356, height: 220)
+    @State private var donePopScale: CGFloat = 1.0
+
+    var body: some View {
+        let open = vm.isExpanded
+        let peeking = vm.isHoverArming && !open
+        let targetW: CGFloat = open ? 1.0 : (peeking ? 0.24 : 0.0)
+        let targetH: CGFloat = open ? 1.0 : (peeking ? 0.07 : 0.0)
+        let active = vm.activeCount
+        let done = vm.clearableCount
+        let waiting = vm.waitingCount > 0
+        let accentBlue = Color(red: 0.51, green: 0.69, blue: 1.00)
+        let emeraldFg = Color(red: 0.36, green: 0.93, blue: 0.69)
+
+        let pillInner = HStack(spacing: 11) {
+            HStack(spacing: 5.5) {
+                BeaconMiniActiveGlyph(isActive: active > 0, isWaiting: waiting, theme: .cosmos, size: 12)
+                if active > 0 {
+                    TimelineView(.animation(minimumInterval: 1.0 / 18.0)) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        HStack(spacing: 2) {
+                            ForEach(0..<3, id: \.self) { i in
+                                let h = 4.5 + 7.5 * (0.5 + 0.5 * sin(t * 4.2 + Double(i) * 1.3))
+                                Capsule()
+                                    .fill(waiting ? Color(red: 1.00, green: 0.82, blue: 0.28) : accentBlue)
+                                    .frame(width: 2.2, height: CGFloat(h))
+                            }
+                        }
+                        .frame(height: 13)
+                    }
+                }
+                Text("\(active)")
+                    .font(.system(size: 11.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(active > 0 ? .white : Color.white.opacity(0.50))
+            }
+
+            if let s = vm.primarySession, active > 0 {
+                Text(s.primaryTimeBadge(now: vm.now))
+                    .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color.white.opacity(0.55))
+            } else {
+                Spacer(minLength: 12)
+                    .frame(width: 14)
+            }
+
+            HStack(spacing: 3) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8.5, weight: .heavy))
+                    .foregroundColor(emeraldFg)
+                Text("\(done)")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(done > 0 ? emeraldFg : Color.white.opacity(0.45))
+            }
+            .padding(.horizontal, 7.5)
+            .padding(.vertical, 3.5)
+            .background(Color(red: 0.08, green: 0.24, blue: 0.20).opacity(done > 0 ? 0.92 : 0.35))
+            .clipShape(Capsule())
+            .scaleEffect(donePopScale)
+        }
+        .padding(.leading, 13)
+        .padding(.trailing, 8)
+        .frame(height: 34)
+        .fixedSize(horizontal: true, vertical: true)
+        .background(
+            HudSizeReader { size, _ in
+                if size.width > 60 && abs(pillSize.width - size.width) > 0.5 {
+                    pillSize = size
+                }
+            }
+        )
+
+        let expandedInner = ExpandedHudView(vm: vm, theme: .cosmos, styleMode: .classic, panelWidth: 356)
+            .fixedSize(horizontal: true, vertical: true)
+            .background(
+                HudSizeReader { size, animated in
+                    guard size.height > 50 else { return }
+                    if abs(expandedSize.width - size.width) > 0.5 || abs(expandedSize.height - size.height) > 0.5 {
+                        if animated && open {
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                expandedSize = size
+                            }
+                        } else {
+                            expandedSize = size
+                        }
+                    }
+                }
+            )
+
+        AnimatableFloatingIslandStage(
+            widthProgress: targetW,
+            heightProgress: targetH,
+            vm: vm,
+            pillSize: pillSize,
+            expandedSize: expandedSize,
+            isBottomAnchored: vm.isBottomAnchored,
+            needsAttention: needsAttention,
+            attentionColor: attentionColor,
+            isOpenInteractive: open,
+            onTapCollapsed: {
+                if let s = vm.primarySession {
+                    vm.jumpToSession(s)
+                } else {
+                    vm.activateAntigravity()
+                }
+            },
+            collapsedContent: pillInner,
+            expandedContent: expandedInner
+        )
+        .onChange(of: vm.clearableCount) { oldCount, newCount in
+            if newCount > oldCount {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.52)) {
+                    donePopScale = 1.18
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        donePopScale = 1.0
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 120Hz Dual-Axis Glass Shell Stage for Corner/Edge Beacons (`e01`~`e10`, `capsule`).
+private struct AnimatableCornerGlassStage<BeaconView: View, ExpandedInner: View>: View, Animatable {
+    var widthProgress: CGFloat
+    var heightProgress: CGFloat
+    let vm: HudViewModel
+    let beaconSize: CGSize
+    let expandedSize: CGSize
+    let collapsedRadius: CGFloat
+    let expandedRadius: CGFloat
+    let styleMode: HudStyleMode
+    let effectiveTheme: HudTheme
+    let morph: HudHoverMorph
+    let normOp: Double
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let needsAttention: Bool
+    let attentionColor: Color
+    let activeCount: Int
+    let anchorAlignment: Alignment
+    let unitAnchor: UnitPoint
+    let isOpenInteractive: Bool
+    let idleAlpha: Double
+    let beacon: BeaconView
+    let expandedInner: ExpandedInner
+
+    nonisolated var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(widthProgress, heightProgress) }
+        set {
+            widthProgress = newValue.first
+            heightProgress = newValue.second
+        }
+    }
+
+    var body: some View {
+        let wP = max(0, widthProgress)
+        let hP = max(0, heightProgress)
+        let p01 = HudLiquidCurves.clamp01(max(wP * 0.5, hP))
+        let peekScale = 1.0 + 0.050 * HudLiquidCurves.clamp01(wP / 0.20) * (1.0 - HudLiquidCurves.clamp01((hP - 0.12) / 0.28))
+        let shellAlpha = HudLiquidCurves.clamp01((wP - 0.08) / 0.28)
+        let bcnFade = HudLiquidCurves.clamp01((wP - 0.22) / 0.36)
+        let cardAlpha = HudLiquidCurves.clamp01((hP - 0.14) / 0.64)
+
+        let bw = max(36, beaconSize.width)
+        let bh = max(28, beaconSize.height)
+        let ew = max(300, expandedSize.width)
+        let eh = max(96, expandedSize.height)
+
+        let curW = max(36, bw + (ew - bw) * wP)
+        let curH = max(28, bh + (eh - bh) * hP)
+        let curRadius = collapsedRadius + (expandedRadius - collapsedRadius) * min(1.0, wP)
+
+        Color.clear
+            .frame(width: curW, height: curH)
+            .overlay(alignment: anchorAlignment) {
+                ZStack {
+                    VisualEffectBlur(
+                        material: .popover,
+                        blendingMode: .behindWindow,
+                        alpha: CGFloat(blurAlpha),
+                        appearanceName: effectiveTheme.isLight ? .aqua : .darkAqua
+                    )
+
+                    if styleMode == .aurora {
+                        LivingAuroraMeshView(isAnimating: activeCount > 0)
+                            .opacity(0.68 + 0.26 * normOp)
+                    } else {
+                        LinearGradient(
+                            colors: effectiveTheme.glassGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .opacity(tintAlpha)
+
+                        RadialGradient(
+                            colors: [
+                                effectiveTheme.swatchColor.opacity(effectiveTheme.isLight ? 0.16 : 0.13),
+                                Color.clear,
+                            ],
+                            center: .topLeading,
+                            startRadius: 6,
+                            endRadius: 210
+                        )
+                    }
+                }
+                .frame(width: curW, height: curH)
+                .overlay(alignment: anchorAlignment) {
+                    expandedInner
+                        .scaleEffect(0.93 + 0.07 * min(1.02, wP), anchor: unitAnchor)
+                        .blur(radius: morph == .m4 ? (1.0 - cardAlpha) * 6.0 : 0)
+                        .opacity(Double(cardAlpha))
+                        .allowsHitTesting(isOpenInteractive)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: curRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: curRadius, style: .continuous)
+                        .strokeBorder(
+                            needsAttention
+                                ? LinearGradient(
+                                    colors: [attentionColor.opacity(0.82), attentionColor.opacity(0.28)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    colors: styleMode == .aurora
+                                        ? [Color.white.opacity(0.32), Color(red: 0.43, green: 0.91, blue: 0.72).opacity(0.20)]
+                                        : effectiveTheme.outerBorderColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                            lineWidth: needsAttention ? 1.2 : 1.0
+                        )
+                )
+                .opacity(Double(shellAlpha))
+            }
+            .overlay(alignment: anchorAlignment) {
+                beacon
+                    .scaleEffect(peekScale + 0.06 * bcnFade, anchor: unitAnchor)
+                    .blur(radius: morph == .m4 ? bcnFade * 5.0 : 0)
+                    .opacity(Double(1.0 - bcnFade) * idleAlpha)
+                    .allowsHitTesting(!isOpenInteractive)
+            }
+            .shadow(
+                color: .black.opacity(0.16 + 0.24 * Double(p01)),
+                radius: 5.0 + 11.0 * p01,
+                x: 0,
+                y: 2.5 + 6.0 * p01
+            )
+            .background(CanvasHitBoxReader(vm: vm))
+    }
+}
+
+/// 120Hz Animatable Detached / Frameless Stage (`M2` Beacon Stay or `S10` Frameless Stack).
+private struct AnimatableDetachedCornerStage<BeaconView: View, ExpandedView: View>: View, Animatable {
+    var widthProgress: CGFloat
+    var heightProgress: CGFloat
+    let vm: HudViewModel
+    let isM2Stay: Bool
+    let isBottomAnchored: Bool
+    let horizontalAlignment: HorizontalAlignment
+    let anchorAlignment: Alignment
+    let unitAnchor: UnitPoint
+    let isOpenInteractive: Bool
+    let idleAlpha: Double
+    let beacon: BeaconView
+    let expanded: ExpandedView
+
+    nonisolated var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(widthProgress, heightProgress) }
+        set {
+            widthProgress = newValue.first
+            heightProgress = newValue.second
+        }
+    }
+
+    var body: some View {
+        let wP = max(0, widthProgress)
+        let hP = max(0, heightProgress)
+        let p01 = HudLiquidCurves.clamp01(max(wP * 0.5, hP))
+        let peekT = HudLiquidCurves.clamp01(wP / 0.20)
+        let cardAlpha = HudLiquidCurves.clamp01((hP - 0.12) / 0.66)
+        let bcnFade = HudLiquidCurves.clamp01((wP - 0.22) / 0.36)
+
+        if isM2Stay {
+            VStack(alignment: horizontalAlignment, spacing: 7) {
+                if isBottomAnchored {
+                    expanded
+                        .scaleEffect(0.93 + 0.07 * min(1.02, wP), anchor: unitAnchor)
+                        .offset(y: 12.0 * (1.0 - min(1.0, hP)))
+                        .opacity(Double(cardAlpha))
+                        .allowsHitTesting(isOpenInteractive)
+
+                    beacon
+                        .scaleEffect(1.0 + 0.045 * peekT - 0.015 * p01, anchor: unitAnchor)
+                        .opacity(idleAlpha)
+                        .background(CanvasHitBoxReader(vm: vm, enabled: !isOpenInteractive))
+                } else {
+                    beacon
+                        .scaleEffect(1.0 + 0.045 * peekT - 0.015 * p01, anchor: unitAnchor)
+                        .opacity(idleAlpha)
+                        .background(CanvasHitBoxReader(vm: vm, enabled: !isOpenInteractive))
+
+                    expanded
+                        .scaleEffect(0.93 + 0.07 * min(1.02, wP), anchor: unitAnchor)
+                        .offset(y: -12.0 * (1.0 - min(1.0, hP)))
+                        .opacity(Double(cardAlpha))
+                        .allowsHitTesting(isOpenInteractive)
+                }
+            }
+            .shadow(color: .black.opacity(0.16 + 0.18 * Double(p01)), radius: 5.0 + 8.0 * p01, x: 0, y: 3.0 + 4.0 * p01)
+            .background(CanvasHitBoxReader(vm: vm, enabled: isOpenInteractive))
+        } else {
+            ZStack(alignment: anchorAlignment) {
+                expanded
+                    .scaleEffect(0.90 + 0.10 * min(1.02, wP), anchor: unitAnchor)
+                    .offset(y: (isBottomAnchored ? 10.0 : -10.0) * (1.0 - min(1.0, hP)))
+                    .opacity(Double(cardAlpha))
+                    .allowsHitTesting(isOpenInteractive)
+                    .background(CanvasHitBoxReader(vm: vm, enabled: isOpenInteractive))
+
+                beacon
+                    .scaleEffect(1.0 + 0.050 * peekT * (1.0 - bcnFade) - 0.08 * bcnFade, anchor: unitAnchor)
+                    .opacity(Double(1.0 - bcnFade) * idleAlpha)
+                    .allowsHitTesting(!isOpenInteractive)
+                    .background(CanvasHitBoxReader(vm: vm, enabled: !isOpenInteractive))
+            }
+            .shadow(color: .black.opacity(0.16 + 0.18 * Double(p01)), radius: 5.0 + 8.0 * p01, x: 0, y: 3.0 + 4.0 * p01)
+        }
+    }
+}
+
+/// Persistent Corner/Edge Morph View keeping both Beacon & Expanded subtrees permanently mounted.
+struct UnifiedCornerMorphView: View {
+    @ObservedObject var vm: HudViewModel
+    let styleMode: HudStyleMode
+    let effectiveTheme: HudTheme
+    let morph: HudHoverMorph
+    let collapsedStyle: HudCollapsedStyle
+    let normOp: Double
+    let blurAlpha: Double
+    let tintAlpha: Double
+    let needsAttention: Bool
+    let attentionColor: Color
+
+    @State private var beaconSize: CGSize = CGSize(width: 96, height: 34)
+    @State private var expandedSize: CGSize = CGSize(width: 348, height: 220)
+
+    private var collapsedCornerRadius: CGFloat {
+        switch collapsedStyle {
+        case .e01, .capsule, .island: return 20
+        case .e04, .e08: return 26
+        case .e02, .e03: return 14
+        default: return 12
+        }
+    }
+
+    var body: some View {
+        let open = vm.isExpanded
+        let peeking = vm.isHoverArming && !open
+        let targetW: CGFloat = open ? 1.0 : (peeking ? 0.22 : 0.0)
+        let targetH: CGFloat = open ? 1.0 : (peeking ? 0.07 : 0.0)
+        let idleAlpha: Double = vm.isAllIdleForLong ? 0.80 : 1.0
+
+        let beaconMeasured = CollapsedBeaconDispatcherView(
+            vm: vm,
+            theme: effectiveTheme,
+            styleMode: styleMode,
+            blurAlpha: blurAlpha,
+            tintAlpha: tintAlpha,
+            needsAttention: needsAttention,
+            attentionColor: attentionColor
+        )
+        .fixedSize(horizontal: true, vertical: true)
+        .background(
+            HudSizeReader { size, _ in
+                if size.width > 20 && size.height > 16 {
+                    if abs(beaconSize.width - size.width) > 0.5 || abs(beaconSize.height - size.height) > 0.5 {
+                        beaconSize = size
+                    }
+                }
+            }
+        )
+
+        let isM2Detached = (morph == .m2 && !vm.settings.pinnedExpanded)
+
+        if styleMode == .frameless || isM2Detached {
+            let detachedExpanded = ExpandedEnvelopeView(
+                vm: vm,
+                styleMode: styleMode,
+                effectiveTheme: effectiveTheme,
+                normOp: normOp,
+                blurAlpha: blurAlpha,
+                tintAlpha: tintAlpha,
+                needsAttention: needsAttention,
+                attentionColor: attentionColor
+            )
+            .fixedSize(horizontal: true, vertical: true)
+
+            AnimatableDetachedCornerStage(
+                widthProgress: targetW,
+                heightProgress: targetH,
+                vm: vm,
+                isM2Stay: isM2Detached,
+                isBottomAnchored: vm.isBottomAnchored,
+                horizontalAlignment: vm.horizontalAlignment,
+                anchorAlignment: vm.anchorAlignment,
+                unitAnchor: vm.anchorUnitPoint,
+                isOpenInteractive: open,
+                idleAlpha: idleAlpha,
+                beacon: beaconMeasured,
+                expanded: detachedExpanded
+            )
+        } else {
+            let expandedInnerMeasured = ExpandedHudView(vm: vm, theme: effectiveTheme, styleMode: styleMode, panelWidth: 348)
+                .fixedSize(horizontal: true, vertical: true)
+                .background(
+                    HudSizeReader { size, animated in
+                        guard size.width > 200, size.height > 50 else { return }
+                        if abs(expandedSize.width - size.width) > 0.5 || abs(expandedSize.height - size.height) > 0.5 {
+                            if animated && open {
+                                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    expandedSize = size
+                                }
+                            } else {
+                                expandedSize = size
+                            }
+                        }
+                    }
+                )
+
+            AnimatableCornerGlassStage(
+                widthProgress: targetW,
+                heightProgress: targetH,
+                vm: vm,
+                beaconSize: beaconSize,
+                expandedSize: expandedSize,
+                collapsedRadius: collapsedCornerRadius,
+                expandedRadius: styleMode == .aurora ? 22 : 20,
+                styleMode: styleMode,
+                effectiveTheme: effectiveTheme,
+                morph: morph,
+                normOp: normOp,
+                blurAlpha: blurAlpha,
+                tintAlpha: tintAlpha,
+                needsAttention: needsAttention,
+                attentionColor: attentionColor,
+                activeCount: vm.activeCount,
+                anchorAlignment: vm.anchorAlignment,
+                unitAnchor: vm.anchorUnitPoint,
+                isOpenInteractive: open,
+                idleAlpha: idleAlpha,
+                beacon: beaconMeasured,
+                expandedInner: expandedInnerMeasured
+            )
+        }
+    }
+}
+
 struct HudRootView: View {
     @ObservedObject var vm: HudViewModel
 
@@ -4294,101 +5416,57 @@ struct HudRootView: View {
         let needsAttention = vm.flashBanner != nil || vm.primarySession?.phase == .waiting
         let attentionColor = vm.flashBanner?.color ?? effectiveTheme.ringColor(for: .waiting)
 
-        let visualOpen = vm.isExpanded
-        let canvasOpen = vm.effectiveCanvasExpanded
-        let unitAnchor = vm.anchorUnitPoint
-        let flushMenuTop = (collapsedStyle == .e05 && !vm.isBottomAnchored)
-        let topPad: CGFloat = flushMenuTop ? 0 : 6
-
-        let beacon = CollapsedBeaconDispatcherView(
-            vm: vm,
-            theme: effectiveTheme,
-            styleMode: styleMode,
-            blurAlpha: blurAlpha,
-            tintAlpha: tintAlpha,
-            needsAttention: needsAttention,
-            attentionColor: attentionColor
-        )
-
-        if !canvasOpen {
-            beacon
-                .scaleEffect(vm.isHoverArming ? 1.07 : 1.0, anchor: unitAnchor)
-                .opacity(vm.isAllIdleForLong ? 0.78 : 1.0)
-                .padding(.top, topPad)
-                .padding([.leading, .trailing, .bottom], 6)
-        } else {
-            let expanded = ExpandedEnvelopeView(
-                vm: vm,
-                styleMode: styleMode,
-                effectiveTheme: effectiveTheme,
-                normOp: normOp,
-                blurAlpha: blurAlpha,
-                tintAlpha: tintAlpha,
-                needsAttention: needsAttention,
-                attentionColor: attentionColor
-            )
-
-            if morph == .m2 && !vm.settings.pinnedExpanded && collapsedStyle != .e05 && collapsedStyle != .island {
-                // M2 · Beacon Stay + Detached Drawer (Beacon remains stationary in corner!)
-                VStack(alignment: vm.horizontalAlignment, spacing: 7) {
-                    if vm.isBottomAnchored {
-                        expanded
-                            .opacity(visualOpen ? 1.0 : 0.0)
-                            .scaleEffect(visualOpen ? 1.0 : 0.94, anchor: unitAnchor)
-                            .offset(y: visualOpen ? 0 : 8)
-                            .allowsHitTesting(visualOpen)
-
-                        beacon
-                            .scaleEffect(visualOpen ? 1.03 : 1.0, anchor: unitAnchor)
-                    } else {
-                        beacon
-                            .scaleEffect(visualOpen ? 1.03 : 1.0, anchor: unitAnchor)
-
-                        expanded
-                            .opacity(visualOpen ? 1.0 : 0.0)
-                            .scaleEffect(visualOpen ? 1.0 : 0.94, anchor: unitAnchor)
-                            .offset(y: visualOpen ? 0 : -8)
-                            .allowsHitTesting(visualOpen)
-                    }
-                }
-                .padding(.top, topPad)
-                .padding([.leading, .trailing, .bottom], 6)
+        Group {
+            if collapsedStyle == .e05 {
+                UnifiedNotchDynamicIslandView(vm: vm)
+                    .padding(.top, 0)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, HudCanvasMetrics.vPad)
+                    .frame(
+                        width: HudCanvasMetrics.width,
+                        height: HudCanvasMetrics.height,
+                        alignment: .top
+                    )
+            } else if collapsedStyle == .island {
+                UnifiedFloatingIslandView(
+                    vm: vm,
+                    needsAttention: needsAttention,
+                    attentionColor: attentionColor
+                )
+                .padding(.horizontal, HudCanvasMetrics.hPad)
+                .padding(.vertical, HudCanvasMetrics.vPad)
+                .frame(
+                    width: HudCanvasMetrics.width,
+                    height: HudCanvasMetrics.height,
+                    alignment: vm.anchorAlignment
+                )
             } else {
-                // M1 / M3 / M4 · Corner-Locked Zero-Jump Morph inside Fixed Anchor ZStack
-                let expScale: CGFloat = {
-                    if visualOpen { return 1.0 }
-                    switch morph {
-                    case .m1: return 0.26
-                    case .m3: return 0.36
-                    case .m4, .m2: return 0.94
-                    }
-                }()
-                let bcnScale: CGFloat = {
-                    if !visualOpen { return 1.0 }
-                    switch morph {
-                    case .m1: return 1.22
-                    case .m3: return 1.12
-                    case .m4, .m2: return 0.86
-                    }
-                }()
-
-                ZStack(alignment: vm.anchorAlignment) {
-                    expanded
-                        .scaleEffect(expScale, anchor: unitAnchor)
-                        .blur(radius: (morph == .m4 && !visualOpen) ? 8 : 0)
-                        .opacity(visualOpen ? 1.0 : 0.0)
-                        .allowsHitTesting(visualOpen)
-
-                    beacon
-                        .scaleEffect(bcnScale, anchor: unitAnchor)
-                        .blur(radius: (morph == .m4 && visualOpen) ? 6 : 0)
-                        .opacity(visualOpen ? 0.0 : 1.0)
-                        .allowsHitTesting(!visualOpen)
-                }
-                .padding(.top, topPad)
-                .padding([.leading, .trailing, .bottom], 6)
+                UnifiedCornerMorphView(
+                    vm: vm,
+                    styleMode: styleMode,
+                    effectiveTheme: effectiveTheme,
+                    morph: morph,
+                    collapsedStyle: collapsedStyle,
+                    normOp: normOp,
+                    blurAlpha: blurAlpha,
+                    tintAlpha: tintAlpha,
+                    needsAttention: needsAttention,
+                    attentionColor: attentionColor
+                )
+                .padding(.horizontal, HudCanvasMetrics.hPad)
+                .padding(.vertical, HudCanvasMetrics.vPad)
+                .frame(
+                    width: HudCanvasMetrics.width,
+                    height: HudCanvasMetrics.height,
+                    alignment: vm.anchorAlignment
+                )
             }
         }
+        .coordinateSpace(name: "hudCanvas")
+        .animation(
+            vm.isExpanded ? morph.expandAnimation : morph.collapseAnimation,
+            value: vm.settings.pinnedExpanded
+        )
     }
 }
 
@@ -4788,6 +5866,7 @@ struct ExpandedHudView: View {
     @ObservedObject var vm: HudViewModel
     let theme: HudTheme
     var styleMode: HudStyleMode = .classic
+    var panelWidth: CGFloat = 348
 
     var body: some View {
         let maxCount = max(1, min(8, vm.settings.maxSessionsShown))
@@ -4940,10 +6019,10 @@ struct ExpandedHudView: View {
                     .help("一键清理所有已完成或已停止的会话记录")
                 }
                 .padding(.horizontal, 12)
-                .padding(.bottom, 10)
+                .padding(.bottom, 12)
             }
         }
-        .frame(width: 336)
+        .frame(width: panelWidth)
     }
 }
 
@@ -5005,39 +6084,7 @@ struct SessionCardRow: View {
 
         ZStack(alignment: .center) {
             Button(action: onActivate) {
-                ZStack {
-                    if isStandaloneFloating {
-                        // S10 · Self-contained levitating glass capsule
-                        ZStack {
-                            VisualEffectBlur(
-                                material: .popover,
-                                blendingMode: .behindWindow,
-                                alpha: CGFloat(blurAlpha),
-                                appearanceName: theme.isLight ? .aqua : .darkAqua
-                            )
-                            LinearGradient(
-                                colors: theme.glassGradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .opacity(isActive ? tintAlpha : tintAlpha * 0.88)
-
-                            if isWaiting {
-                                theme.waitingCardFill
-                            } else if isRowHovered {
-                                Color.white.opacity(theme.isLight ? 0.20 : 0.06)
-                            }
-                        }
-                        .clipShape(cardShape)
-                    } else {
-                        cardShape.fill(rowFill)
-                    }
-
-                    if isActive && styleMode != .aurora {
-                        GlassProgressWash(session: session, theme: theme)
-                            .clipShape(cardShape)
-                    }
-
+                Group {
                     if isActive || isError {
                         let statusLine: String = {
                             if let ts = session.taskStats,
@@ -5124,6 +6171,41 @@ struct SessionCardRow: View {
                         .padding(.vertical, 8.5)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    ZStack {
+                        if isStandaloneFloating {
+                            ZStack {
+                                VisualEffectBlur(
+                                    material: .popover,
+                                    blendingMode: .behindWindow,
+                                    alpha: CGFloat(blurAlpha),
+                                    appearanceName: theme.isLight ? .aqua : .darkAqua
+                                )
+                                LinearGradient(
+                                    colors: theme.glassGradientColors,
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .opacity(isActive ? tintAlpha : tintAlpha * 0.88)
+
+                                if isWaiting {
+                                    theme.waitingCardFill
+                                } else if isRowHovered {
+                                    Color.white.opacity(theme.isLight ? 0.20 : 0.06)
+                                }
+                            }
+                            .clipShape(cardShape)
+                        } else {
+                            cardShape.fill(rowFill)
+                        }
+
+                        if isActive && styleMode != .aurora {
+                            GlassProgressWash(session: session, theme: theme)
+                                .clipShape(cardShape)
+                        }
+                    }
+                }
                 .overlay(
                     cardShape
                         .strokeBorder(
@@ -5160,6 +6242,7 @@ struct SessionCardRow: View {
                 }
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.14)) {
                 isRowHovered = hovering
@@ -5171,46 +6254,93 @@ struct SessionCardRow: View {
 // MARK: - Non-Activating Floating NSPanel & Hover Tracking
 
 final class FloatingHudPanel: NSPanel {
+    var onWindowDragBegan: (() -> Void)?
+    var onWindowDragEnded: (() -> Void)?
+
+    private var trackingMouseDown = false
+    private(set) var isDraggingPanel = false
+    private var dragStartMouseScreen: NSPoint = .zero
+    private var dragStartPanelOrigin: NSPoint = .zero
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        // Allow hardware-notch Dynamic Island mode to sit flush at screen.frame.maxY inside the menu bar band
+        // Allow hardware-notch Dynamic Island mode & transparent canvas margins to span screen edges freely
         return frameRect
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown:
+            if let hit = contentView?.hitTest(event.locationInWindow), hit is OpacityTrackNSView {
+                trackingMouseDown = false
+                isDraggingPanel = false
+                super.sendEvent(event)
+                return
+            }
+            trackingMouseDown = true
+            isDraggingPanel = false
+            dragStartMouseScreen = NSEvent.mouseLocation
+            dragStartPanelOrigin = frame.origin
+            super.sendEvent(event)
+
+        case .leftMouseDragged:
+            guard trackingMouseDown else {
+                super.sendEvent(event)
+                return
+            }
+            let mouse = NSEvent.mouseLocation
+            let dx = mouse.x - dragStartMouseScreen.x
+            let dy = mouse.y - dragStartMouseScreen.y
+            if !isDraggingPanel && hypot(dx, dy) > 4.5 {
+                isDraggingPanel = true
+                onWindowDragBegan?()
+            }
+            if isDraggingPanel {
+                setFrameOrigin(
+                    NSPoint(
+                        x: round(dragStartPanelOrigin.x + dx),
+                        y: round(dragStartPanelOrigin.y + dy)
+                    )
+                )
+                return
+            }
+            super.sendEvent(event)
+
+        case .leftMouseUp:
+            if isDraggingPanel {
+                trackingMouseDown = false
+                isDraggingPanel = false
+                // Deliver synthetic mouseUp outside interactive bounds so SwiftUI buttons clear pressed state without firing actions
+                if let cancelUp = NSEvent.mouseEvent(
+                    with: .leftMouseUp,
+                    location: NSPoint(x: -500, y: -500),
+                    modifierFlags: event.modifierFlags,
+                    timestamp: event.timestamp,
+                    windowNumber: windowNumber,
+                    context: nil,
+                    eventNumber: event.eventNumber,
+                    clickCount: 0,
+                    pressure: 0
+                ) {
+                    super.sendEvent(cancelUp)
+                }
+                onWindowDragEnded?()
+                return
+            }
+            trackingMouseDown = false
+            super.sendEvent(event)
+
+        default:
+            super.sendEvent(event)
+        }
     }
 }
 
 final class HoverTrackingHostingView<Content: View>: NSHostingView<Content> {
-    var onHoverChanged: ((Bool) -> Void)?
-    private var trackingAreaRef: NSTrackingArea?
-
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        if let existing = trackingAreaRef {
-            removeTrackingArea(existing)
-        }
-        let options: NSTrackingArea.Options = [
-            .mouseEnteredAndExited,
-            .activeAlways,
-            .inVisibleRect,
-        ]
-        let area = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
-        addTrackingArea(area)
-        trackingAreaRef = area
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        super.mouseEntered(with: event)
-        onHoverChanged?(true)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        super.mouseExited(with: event)
-        onHoverChanged?(false)
     }
 }
 
@@ -5226,12 +6356,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private weak var menuOpacityValueLabel: NSTextField?
     private weak var opacityParentMenuItem: NSMenuItem?
     private var isProgrammaticMove = false
+    private var isUserDraggingWindow = false
+    private var globalMouseMonitor: Any?
+    private var localMouseMonitor: Any?
+    private var hoverPollTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         vm = HudViewModel()
 
         setupFloatingPanel()
+        setupMouseHoverMonitors()
         setupStatusBarMenu()
 
         vm.onLayoutChange = { [weak self] in
@@ -5251,6 +6386,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if vm.settings.pinnedExpanded {
             vm.isCanvasExpanded = true
+            vm.isContentRevealed = true
         }
         syncPanelVisibilityAndFrame()
         syncPanelAlpha()
@@ -5261,11 +6397,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setupFloatingPanel() {
         let rootView = HudRootView(vm: vm)
         hostingView = HoverTrackingHostingView(rootView: rootView)
-        hostingView.onHoverChanged = { [weak self] hovering in
-            self?.vm.setHovering(hovering)
-        }
 
-        let initialRect = NSRect(x: 0, y: 0, width: 312, height: 48)
+        let initialRect = NSRect(
+            x: 0,
+            y: 0,
+            width: HudCanvasMetrics.width,
+            height: HudCanvasMetrics.height
+        )
         panel = FloatingHudPanel(
             contentRect: initialRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -5277,149 +6415,310 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.isMovableByWindowBackground = true
+        // WindowServer shadow disabled: GPU SwiftUI shadows render inside the fixed 500x600 canvas with zero resize hitches!
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+        panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.contentView = hostingView
 
+        panel.onWindowDragBegan = { [weak self] in
+            guard let self = self else { return }
+            self.isUserDraggingWindow = true
+            self.panel.ignoresMouseEvents = false
+            self.vm.cancelPendingHoverDwellForDrag()
+        }
+        panel.onWindowDragEnded = { [weak self] in
+            self?.commitUserWindowDrag()
+        }
+
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(windowDidMove(_:)),
-            name: NSWindow.didMoveNotification,
-            object: panel
+            selector: #selector(screenParametersDidChange(_:)),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
         )
     }
 
-    @objc private func windowDidMove(_ note: Notification) {
-        guard !isProgrammaticMove else { return }
-        let frame = panel.frame
-        let screen = panel.screen ?? NSScreen.main ?? NSScreen.screens.first
-        let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-
-        vm.settings.positionPreset = "custom"
-        vm.settings.customTopCenterX = Double(frame.midX)
-        vm.settings.customTopY = Double(frame.maxY)
-
-        if frame.midX > visibleRect.midX + 110 {
-            vm.settings.customAnchorMode = "right"
-            vm.settings.customAnchorX = Double(frame.maxX)
-        } else if frame.midX < visibleRect.midX - 110 {
-            vm.settings.customAnchorMode = "left"
-            vm.settings.customAnchorX = Double(frame.minX)
-        } else {
-            vm.settings.customAnchorMode = "center"
-            vm.settings.customAnchorX = Double(frame.midX)
+    private func setupMouseHoverMonitors() {
+        let globalMask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .leftMouseDown, .leftMouseUp]
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: globalMask) { [weak self] _ in
+            Task { @MainActor in
+                self?.evaluateMouseHover()
+            }
         }
 
+        let localMask: NSEvent.EventTypeMask = [
+            .mouseMoved, .leftMouseDragged, .leftMouseDown, .leftMouseUp, .mouseEntered, .mouseExited
+        ]
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: localMask) { [weak self] event in
+            self?.evaluateMouseHover()
+            return event
+        }
+
+        // Lightweight 25Hz screen-coordinate fallback ensures click-through & hover stay synced across Spaces/scrolls
+        hoverPollTimer = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.evaluateMouseHover()
+            }
+        }
+    }
+
+    private func evaluateMouseHover() {
+        guard let panel = panel, vm.settings.visible, panel.isVisible else {
+            if panel?.ignoresMouseEvents == false {
+                panel?.ignoresMouseEvents = true
+            }
+            if vm.isHovered || vm.isHoverArming {
+                vm.setHovering(false)
+            }
+            return
+        }
+
+        // Keep window interactive while user is actively dragging or pressing mouse inside the HUD
+        if isUserDraggingWindow || panel.isDraggingPanel || ((NSEvent.pressedMouseButtons & 1) != 0 && !panel.ignoresMouseEvents) {
+            return
+        }
+
+        let mouse = NSEvent.mouseLocation
+        let pf = panel.frame
+        let cr = vm.activeCanvasRect
+        let pad: CGFloat = vm.isExpanded ? 8.0 : 4.5
+
+        let hitRect = NSRect(
+            x: pf.minX + cr.minX - pad,
+            y: pf.maxY - cr.maxY - pad,
+            width: cr.width + pad * 2.0,
+            height: cr.height + pad * 2.0
+        )
+
+        let inside = hitRect.contains(mouse)
+        if panel.ignoresMouseEvents != !inside {
+            panel.ignoresMouseEvents = !inside
+        }
+        vm.setHovering(inside)
+    }
+
+    @objc private func screenParametersDidChange(_ note: Notification) {
+        syncPanelVisibilityAndFrame()
+    }
+
+    private func commitUserWindowDrag() {
+        isUserDraggingWindow = false
+        guard let panel = panel else { return }
+
+        let pf = panel.frame
+        let cr = vm.activeCanvasRect
+        let visLeftX = pf.minX + cr.minX
+        let visRightX = pf.minX + cr.maxX
+        let visMidX = pf.minX + cr.midX
+        let visTopY = pf.maxY - cr.minY
+        let visBottomY = pf.maxY - cr.maxY
+        let visMidY = (visTopY + visBottomY) * 0.5
+        let mouse = NSEvent.mouseLocation
+
+        let currentStyle = vm.settings.resolvedCollapsedStyle
+
+        // Check magnetic snap onto MacBook hardware camera notch when dragging Dynamic Island styles (`.e05` / `.island`)
+        if currentStyle == .e05 || currentStyle == .island {
+            if let notchScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) {
+                let metrics = NotchScreenMetrics.current(for: notchScreen)
+                let nearNotchX = abs(visMidX - metrics.notchCenterX) < 120 || abs(mouse.x - metrics.notchCenterX) < 120
+                let nearNotchTop = visTopY >= metrics.screenFrame.maxY - 46 || mouse.y >= metrics.screenFrame.maxY - 46
+                if metrics.hasHardwareNotch && nearNotchX && nearNotchTop {
+                    vm.updateSettings {
+                        $0.collapsedStyle = HudCollapsedStyle.e05.rawValue
+                        $0.positionPreset = "top_center"
+                        $0.customTopCenterX = nil
+                        $0.customTopY = nil
+                        $0.customBottomY = nil
+                        $0.customVerticalMode = nil
+                        $0.customAnchorMode = nil
+                        $0.customAnchorX = nil
+                    }
+                    return
+                }
+            }
+        }
+
+        let dropPoint = NSPoint(x: visMidX, y: visMidY)
+        let dropScreen = NSScreen.screens.first(where: { $0.frame.insetBy(dx: -60, dy: -60).contains(dropPoint) })
+            ?? panel.screen
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+        let visibleRect = dropScreen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+
+        var nextSettings = vm.settings
+        // If user dragged the hardware-notch meniscus away from the top bezel, morph seamlessly into the Floating Pill Island!
+        let detachedFromNotch = (currentStyle == .e05)
+        if detachedFromNotch {
+            nextSettings.collapsedStyle = HudCollapsedStyle.island.rawValue
+        }
+
+        nextSettings.positionPreset = "custom"
+        nextSettings.customTopCenterX = Double(visMidX)
+
+        if detachedFromNotch {
+            nextSettings.customAnchorMode = "center"
+            nextSettings.customAnchorX = Double(visMidX)
+        } else if visMidX > visibleRect.midX + 110 {
+            nextSettings.customAnchorMode = "right"
+            nextSettings.customAnchorX = Double(visRightX)
+        } else if visMidX < visibleRect.midX - 110 {
+            nextSettings.customAnchorMode = "left"
+            nextSettings.customAnchorX = Double(visLeftX)
+        } else {
+            nextSettings.customAnchorMode = "center"
+            nextSettings.customAnchorX = Double(visMidX)
+        }
+
+        if !detachedFromNotch && visMidY < visibleRect.minY + visibleRect.height * 0.32 {
+            nextSettings.customVerticalMode = "bottom"
+            nextSettings.customBottomY = Double(visBottomY)
+            nextSettings.customTopY = Double(visTopY)
+        } else {
+            nextSettings.customVerticalMode = "top"
+            nextSettings.customTopY = Double(visTopY)
+            nextSettings.customBottomY = nil
+        }
+
+        var tx = Transaction()
+        tx.disablesAnimations = true
+        withTransaction(tx) {
+            vm.settings = nextSettings
+        }
         vm.saveSettings()
         vm.writeHelperStatus()
+        syncPanelVisibilityAndFrame()
+        hostingView.layoutSubtreeIfNeeded()
+        updateStatusItemAppearance()
+        evaluateMouseHover()
     }
 
     private func syncPanelVisibilityAndFrame() {
         guard panel != nil else { return }
+        if isUserDraggingWindow || panel.isDraggingPanel {
+            return
+        }
         if !vm.settings.visible {
+            panel.ignoresMouseEvents = true
             panel.orderOut(nil)
             return
         }
 
-        hostingView.invalidateIntrinsicContentSize()
-        hostingView.layoutSubtreeIfNeeded()
-        let fitting = hostingView.fittingSize
-
-        let canvasOpen = vm.effectiveCanvasExpanded
+        let canvasW = HudCanvasMetrics.width
+        let canvasH = HudCanvasMetrics.height
+        let hPad = HudCanvasMetrics.hPad
+        let vPad = HudCanvasMetrics.vPad
         let collapsedStyle = vm.settings.resolvedCollapsedStyle
-        let minW: CGFloat = canvasOpen ? 306 : (collapsedStyle == .capsule ? 306 : 36)
-        let minH: CGFloat = canvasOpen ? 46 : (collapsedStyle == .e05 ? 25 : 30)
-
-        let targetWidth = ceil(max(minW, fitting.width))
-        let targetHeight = ceil(max(minH, fitting.height))
-
-        let screen = panel.screen ?? NSScreen.main ?? NSScreen.screens.first
-        let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
         let margin: CGFloat = 14
 
         if collapsedStyle == .e05 {
-            // Hardware-Notch / Menu-Bar Fused Dynamic Island: always lock to top-center notch!
-            let metrics = NotchScreenMetrics.current(for: screen)
-            let topEdge = metrics.hasHardwareNotch ? metrics.screenFrame.maxY : visibleRect.maxY
-            let originX = round(metrics.notchCenterX - targetWidth / 2.0)
-            let originY = round(topEdge - targetHeight)
+            // Hardware-Notch / Menu-Bar Fused Dynamic Island: fixed 500x600 canvas locked to camera notch!
+            let notchScreen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 })
+            let targetScreen = notchScreen ?? panel.screen ?? NSScreen.main ?? NSScreen.screens.first
+            let metrics = NotchScreenMetrics.current(for: targetScreen)
+            let vis = metrics.visibleFrame
+            let topEdge = metrics.hasHardwareNotch ? metrics.screenFrame.maxY : vis.maxY
+            let originX = round(metrics.notchCenterX - canvasW / 2.0)
+            let originY = round(topEdge - canvasH)
 
             let notchLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
             if panel.level != notchLevel {
                 panel.level = notchLevel
             }
-            panel.isMovableByWindowBackground = false
 
-            let newFrame = NSRect(x: originX, y: originY, width: targetWidth, height: targetHeight)
+            let newFrame = NSRect(x: originX, y: originY, width: canvasW, height: canvasH)
             if panel.frame != newFrame {
                 isProgrammaticMove = true
                 panel.setFrame(newFrame, display: true, animate: false)
                 isProgrammaticMove = false
-                panel.invalidateShadow()
             }
             syncPanelAlpha()
             if !panel.isVisible {
                 panel.orderFrontRegardless()
             }
+            evaluateMouseHover()
             return
         }
 
         if panel.level != .statusBar {
             panel.level = .statusBar
         }
-        panel.isMovableByWindowBackground = true
 
         var originX: CGFloat
         var originY: CGFloat
 
         switch vm.settings.positionPreset {
         case "top_center":
-            originX = round(visibleRect.midX - targetWidth / 2.0)
-            originY = round((visibleRect.maxY - 6) - targetHeight)
+            let screen = NSScreen.main ?? panel.screen ?? NSScreen.screens.first
+            let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            originX = round(visibleRect.midX - canvasW / 2.0)
+            originY = round((visibleRect.maxY - 6 + vPad) - canvasH)
 
         case "bottom_right":
-            originX = round(visibleRect.maxX - margin - targetWidth)
-            originY = round(visibleRect.minY + margin)
+            let screen = NSScreen.main ?? panel.screen ?? NSScreen.screens.first
+            let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            originX = round((visibleRect.maxX - margin + hPad) - canvasW)
+            originY = round(visibleRect.minY + margin - vPad)
 
         case "bottom_left":
-            originX = round(visibleRect.minX + margin)
-            originY = round(visibleRect.minY + margin)
+            let screen = NSScreen.main ?? panel.screen ?? NSScreen.screens.first
+            let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+            originX = round(visibleRect.minX + margin - hPad)
+            originY = round(visibleRect.minY + margin - vPad)
 
         case "custom":
-            let topY = CGFloat(vm.settings.customTopY ?? Double(visibleRect.maxY - margin))
-            originY = round(topY - targetHeight)
+            let probeX = CGFloat(vm.settings.customAnchorX ?? vm.settings.customTopCenterX ?? 800)
+            let probeY = CGFloat(vm.settings.customBottomY ?? vm.settings.customTopY ?? 600)
+            let probePt = NSPoint(x: probeX, y: probeY)
+            let customScreen = NSScreen.screens.first(where: { $0.frame.insetBy(dx: -80, dy: -80).contains(probePt) })
+                ?? panel.screen
+                ?? NSScreen.main
+                ?? NSScreen.screens.first
+            let visibleRect = customScreen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+
+            if vm.isBottomAnchored {
+                let rawBottomY = CGFloat(vm.settings.customBottomY ?? Double(visibleRect.minY + margin))
+                let clampedBottomY = max(visibleRect.minY + 2, min(rawBottomY, visibleRect.maxY - 36))
+                originY = round(clampedBottomY - vPad)
+            } else {
+                let rawTopY = CGFloat(vm.settings.customTopY ?? Double(visibleRect.maxY - margin))
+                let clampedTopY = max(visibleRect.minY + 36, min(rawTopY, visibleRect.maxY - 2))
+                originY = round((clampedTopY + vPad) - canvasH)
+            }
 
             let mode = vm.settings.customAnchorMode ?? "right"
             if mode == "right", let ax = vm.settings.customAnchorX {
-                originX = round(CGFloat(ax) - targetWidth)
+                let clampedRight = max(visibleRect.minX + 60, min(CGFloat(ax), visibleRect.maxX - 2))
+                originX = round((clampedRight + hPad) - canvasW)
             } else if mode == "left", let ax = vm.settings.customAnchorX {
-                originX = round(CGFloat(ax))
+                let clampedLeft = max(visibleRect.minX + 2, min(CGFloat(ax), visibleRect.maxX - 60))
+                originX = round(clampedLeft - hPad)
             } else if let cx = vm.settings.customTopCenterX {
-                originX = round(CGFloat(cx) - targetWidth / 2.0)
+                let clampedCenter = max(visibleRect.minX + 48, min(CGFloat(cx), visibleRect.maxX - 48))
+                originX = round(clampedCenter - canvasW / 2.0)
             } else {
-                originX = round(visibleRect.maxX - margin - targetWidth)
+                originX = round((visibleRect.maxX - margin + hPad) - canvasW)
             }
 
         default: // "top_right" (auto-centers if floating Dynamic Island `.island` is selected!)
+            let screen = NSScreen.main ?? panel.screen ?? NSScreen.screens.first
+            let visibleRect = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
             if collapsedStyle == .island {
-                originX = round(visibleRect.midX - targetWidth / 2.0)
-                originY = round((visibleRect.maxY - 6) - targetHeight)
+                originX = round(visibleRect.midX - canvasW / 2.0)
+                originY = round((visibleRect.maxY - 6 + vPad) - canvasH)
             } else {
-                originX = round(visibleRect.maxX - margin - targetWidth)
-                originY = round((visibleRect.maxY - margin) - targetHeight)
+                originX = round((visibleRect.maxX - margin + hPad) - canvasW)
+                originY = round((visibleRect.maxY - margin + vPad) - canvasH)
             }
         }
 
-        originX = max(visibleRect.minX + 6, min(originX, visibleRect.maxX - targetWidth - 6))
-        originY = max(visibleRect.minY + 6, min(originY, visibleRect.maxY - targetHeight - 4))
-
-        let newFrame = NSRect(x: originX, y: originY, width: targetWidth, height: targetHeight)
+        let newFrame = NSRect(x: originX, y: originY, width: canvasW, height: canvasH)
         if panel.frame != newFrame {
             isProgrammaticMove = true
             panel.setFrame(newFrame, display: true, animate: false)
             isProgrammaticMove = false
-            panel.invalidateShadow()
         }
 
         syncPanelAlpha()
@@ -5427,6 +6726,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !panel.isVisible {
             panel.orderFrontRegardless()
         }
+        evaluateMouseHover()
     }
 
     private func syncPanelAlpha() {
@@ -5569,7 +6869,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = (vm.settings.resolvedHoverMorph == hm) ? .on : .off
             morphMenu.addItem(item)
         }
-        let morphParent = NSMenuItem(title: "悬停展开动效（\(vm.settings.resolvedHoverMorph.shortLabel)）", action: nil, keyEquivalent: "")
+        morphMenu.addItem(.separator())
+        let delayHeader = NSMenuItem(title: "悬停触发延迟（预热防误触）", action: nil, keyEquivalent: "")
+        delayHeader.isEnabled = false
+        morphMenu.addItem(delayHeader)
+        let currentDelay = vm.settings.resolvedHoverDelay
+        let delayPresets: [(sec: Double, title: String)] = [
+            (0.10, "100ms · 极速响应"),
+            (0.18, "180ms · 丝滑蓄力（默认）"),
+            (0.32, "320ms · 强防误触"),
+            (0.50, "500ms · 慢速驻留"),
+        ]
+        for dp in delayPresets {
+            let item = NSMenuItem(title: dp.title, action: #selector(selectHoverDelay(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = dp.sec
+            item.state = abs(currentDelay - dp.sec) < 0.04 ? .on : .off
+            morphMenu.addItem(item)
+        }
+        let delayMs = Int(round(currentDelay * 1000.0))
+        let morphParent = NSMenuItem(
+            title: "悬停展开动效（\(vm.settings.resolvedHoverMorph.shortLabel) · \(delayMs)ms）",
+            action: nil,
+            keyEquivalent: ""
+        )
         morphParent.submenu = morphMenu
         menu.addItem(morphParent)
 
@@ -5712,12 +7035,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    @objc private func selectHoverDelay(_ sender: NSMenuItem) {
+        guard let sec = sender.representedObject as? Double else { return }
+        vm.updateSettings {
+            $0.hoverDelay = sec
+        }
+    }
+
     @objc private func selectPositionPreset(_ sender: NSMenuItem) {
         guard let preset = sender.representedObject as? String else { return }
         vm.updateSettings {
             $0.positionPreset = preset
             $0.customTopCenterX = nil
             $0.customTopY = nil
+            $0.customBottomY = nil
+            $0.customVerticalMode = nil
             $0.customAnchorMode = nil
             $0.customAnchorX = nil
         }

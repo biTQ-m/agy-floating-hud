@@ -1471,6 +1471,16 @@
               <button type="button" class="morph-chip" data-morph="m3" title="95ms 防路过误触 + 灵动展开">M3 防误触</button>
               <button type="button" class="morph-chip" data-morph="m4" title="原位光学景深柔焦对焦切换">M4 景深</button>
             </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+              <span class="inspector-title" style="font-size:11.5px;">悬停预热延迟</span>
+              <span id="delayLabelText" class="inspector-sub">180ms 丝滑</span>
+            </div>
+            <div class="morph-row" id="delayGroup">
+              <button type="button" class="morph-chip" data-delay="0.10" title="悬停 100ms 极速展开">100ms</button>
+              <button type="button" class="morph-chip active" data-delay="0.18" title="0ms 液态拉丝预热 + 180ms 速度无缝衔接展开（默认）">180ms</button>
+              <button type="button" class="morph-chip" data-delay="0.32" title="适合频繁操作顶栏标签页，320ms 强防误触">320ms</button>
+              <button type="button" class="morph-chip" data-delay="0.50" title="需明确停留 500ms 才展开">500ms</button>
+            </div>
           </div>
         </div>
 
@@ -1595,6 +1605,17 @@
       const seq = Number(nav.seq || 0);
       if (seq && seq <= lastHandledSeq) return;
       if (seq) lastHandledSeq = seq;
+
+      // Cross-iframe single-execution guard (`/` Aux Pane vs `/bridge` Sidebar)
+      if (seq) {
+        try {
+          const prev = Number(localStorage.getItem('agy_hud_handled_seq') || 0);
+          if (prev >= seq) return;
+          localStorage.setItem('agy_hud_handled_seq', String(seq));
+        } catch {
+          // ignore storage restrictions
+        }
+      }
 
       if (window.sidecar?.ui?.toggleConversation) {
         window.sidecar.ui.toggleConversation(nav.conversationId, { openSidePanel: false });
@@ -1785,6 +1806,13 @@
       document.getElementById('morphLabelText').textContent = MORPH_NAMES[hMorph] || hMorph;
       document.querySelectorAll('#morphGroup .morph-chip').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.morph === hMorph);
+      });
+
+      const hDelay = Number(settings.hoverDelay ?? 0.18);
+      const delayMs = Math.round(hDelay * 1000);
+      document.getElementById('delayLabelText').textContent = `${delayMs}ms`;
+      document.querySelectorAll('#delayGroup .morph-chip').forEach((btn) => {
+        btn.classList.toggle('active', Math.abs(Number(btn.dataset.delay) - hDelay) < 0.04);
       });
 
       const pill = document.getElementById('helperPill');
@@ -2000,6 +2028,19 @@
         });
         await apiPost('/api/settings', { hoverMorph });
         showToast(`悬停动效已切换至 ${MORPH_NAMES[hoverMorph] || hoverMorph}`);
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('#delayGroup .morph-chip').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const hoverDelay = Number(btn.dataset.delay);
+        document.getElementById('delayLabelText').textContent = `${Math.round(hoverDelay * 1000)}ms`;
+        document.querySelectorAll('#delayGroup .morph-chip').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        await apiPost('/api/settings', { hoverDelay });
+        showToast(`悬停预热延迟已设为 ${Math.round(hoverDelay * 1000)}ms`);
         refresh();
       });
     });

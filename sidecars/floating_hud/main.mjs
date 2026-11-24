@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
   theme: 'cosmos',
   collapsedStyle: 'e05',
   hoverMorph: 'm1',
+  hoverDelay: 0.18,
 };
 
 function resolveAppDataDir() {
@@ -103,6 +104,11 @@ function getSettings() {
   if (!VALID_HOVER_MORPHS.includes(merged.hoverMorph)) {
     merged.hoverMorph = 'm1';
   }
+  if (typeof merged.hoverDelay !== 'number' || !Number.isFinite(merged.hoverDelay)) {
+    merged.hoverDelay = 0.18;
+  } else {
+    merged.hoverDelay = Math.min(1.2, Math.max(0.05, Number(merged.hoverDelay.toFixed(2))));
+  }
   return merged;
 }
 
@@ -125,6 +131,10 @@ function updateSettings(patch) {
     if (patch.positionPreset !== 'custom') {
       delete next.customTopCenterX;
       delete next.customTopY;
+      delete next.customBottomY;
+      delete next.customVerticalMode;
+      delete next.customAnchorMode;
+      delete next.customAnchorX;
     }
   }
   if (typeof patch.maxSessionsShown === 'number') {
@@ -141,6 +151,9 @@ function updateSettings(patch) {
   }
   if (typeof patch.hoverMorph === 'string' && VALID_HOVER_MORPHS.includes(patch.hoverMorph)) {
     next.hoverMorph = patch.hoverMorph;
+  }
+  if (typeof patch.hoverDelay === 'number' && Number.isFinite(patch.hoverDelay)) {
+    next.hoverDelay = Math.min(1.2, Math.max(0.05, Number(patch.hoverDelay.toFixed(2))));
   }
   if (typeof patch.clearedCompletedBefore === 'number') {
     next.clearedCompletedBefore = patch.clearedCompletedBefore;
@@ -241,11 +254,13 @@ function checkNavFileAndWake() {
       projectId: String(raw.projectId || ''),
       requestedAt: raw.requestedAt || Date.now(),
     };
-    const firstWaiter = navWaiters.values().next().value;
-    if (firstWaiter) {
-      navWaiters.delete(firstWaiter);
+    if (navWaiters.size > 0) {
+      const waiters = Array.from(navWaiters);
+      navWaiters.clear();
       lastAckedSeq = seq;
-      firstWaiter(latestNav);
+      for (const w of waiters) {
+        w(latestNav);
+      }
     }
   }
 }
